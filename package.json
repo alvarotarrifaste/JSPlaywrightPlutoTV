@@ -1,0 +1,16 @@
+{
+  "name": "js-playwright-plutotv",
+  "version": "1.0.0",
+  "description": "Playwright + JS + Cucumber E2E automation framework for PlutoTV OTT testing",
+  "scripts": {
+    "test": "cucumber-js",
+    "test:headed": "cross-env HEADED=true cucumber-js",
+    "test:report": "cucumber-js --format html:reports/cucumber-report.html"
+  },
+  "dependencies": {
+    "@cucumber/cucumber": "^10.8.0",
+    "@playwright/test": "^1.49.0",
+    "cross-env": "^7.0.3",
+    "playwright": "^1.49.0"
+  }
+}
