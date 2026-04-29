@@ -13,8 +13,12 @@
 const { setWorldConstructor, World, setDefaultTimeout } = require('@cucumber/cucumber');
 const { chromium } = require('playwright');
 
-// Timeout global: 30 segundos por step/hook
-setDefaultTimeout(30000);
+// Timeout global: 60 segundos por step/hook.
+// Se aumentó de 30 s a 60 s porque algunos steps combinan múltiples esperas:
+// waitForPlayer (hasta 30 s) + waitForFullScreenLayout (hasta 25 s) = 55 s máximo teórico.
+// PlutoTV también tiene tiempo de carga de DRM y negociación de licencia Widevine,
+// lo que puede sumar latencia adicional en la validación de playback.
+setDefaultTimeout(60000);
 
 class PlaywrightWorld extends World {
   /**

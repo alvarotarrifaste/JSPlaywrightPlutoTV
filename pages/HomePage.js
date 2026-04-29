@@ -85,22 +85,41 @@ class HomePage {
   /**
    * Hace clic en un link del menú de navegación superior de PlutoTV.
    *
-   * La barra superior contiene links como "Home", "Live TV", "On Demand", "Search".
-   * Son elementos <a> que llevan al usuario a las distintas secciones.
+   * La barra superior contiene links hacia "Home", "Live TV", "On Demand", "Search".
+   * Cada link tiene una URL conocida en PlutoTV, por lo que usamos href como selector
+   * principal en lugar de texto. Esto es más robusto porque:
    *
-   * Se filtra por texto visible porque cada link tiene un ícono SVG + texto:
-   * filter({ hasText }) detecta el texto como substring aunque haya hijos SVG en el elemento.
+   *   - PlutoTV es una React SPA que puede renderizar el <nav> al final del DOM
+   *     mediante portals, aunque sea visible en la parte superior de la pantalla.
+   *     Un selector solo por texto con .first() podría matchear un link de contenido
+   *     que aparezca antes en el DOM (por ejemplo, un card "On Demand").
    *
-   * Este método solo hace click — la espera de que la nueva página esté lista
-   * es responsabilidad del Page Object de la página destino (LiveTvPage, OnDemandPage, etc.)
+   *   - href es único e inequívoco para cada sección de la app.
    *
-   * @param {string} navLabel - texto del link de navegación: "Live TV", "On Demand", etc.
+   * Mapa de navLabel → fragmento de href esperado:
+   *   'Home'      → '/hub/home'
+   *   'Live TV'   → '/live-tv'
+   *   'On Demand' → '/on-demand'
+   *   'Search'    → '/search'
+   *
+   * @param {string} navLabel - etiqueta del link de navegación (usada para el mapa de hrefs)
    */
   async clickNavButton(navLabel) {
-    const navLink = this.page
-      .locator('a')
-      .filter({ hasText: navLabel })
-      .first();
+    // Mapa navLabel → fragmento de href para cada sección de PlutoTV
+    const hrefFragments = {
+      'Home':      '/hub/home',
+      'Live TV':   '/live-tv',
+      'On Demand': '/on-demand',
+      'Search':    '/search'
+    };
+
+    const hrefFragment = hrefFragments[navLabel];
+
+    // Selector primario: link por href (único y robusto frente a DOM portals)
+    // Si el navLabel no está en el mapa, cae al selector por texto como fallback
+    const navLink = hrefFragment
+      ? this.page.locator(`a[href*="${hrefFragment}"]`).first()
+      : this.page.locator('a').filter({ hasText: navLabel }).first();
 
     await navLink.waitFor({ state: 'visible', timeout: 10000 });
     await navLink.click();

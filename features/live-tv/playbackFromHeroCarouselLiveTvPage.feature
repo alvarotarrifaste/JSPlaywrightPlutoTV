@@ -8,5 +8,5 @@ Feature: Playback Validation From Hero Carousel - Live TV Page
     Given I open the PlutoTV home page
     When I click the "Live TV" navigation button
     And I click the "Watch Live Channel" button on the hero carousel
-    Then the video player should be displayed in full screen
+    Then the video player should be visible
     And the playback should be active

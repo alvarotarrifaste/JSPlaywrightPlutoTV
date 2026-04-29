@@ -22,12 +22,15 @@ class DetailsPage {
   constructor(page) {
     this.page = page;
 
-    // Botón principal de reproducción en la página de detalles.
-    // Se usa /Watch Now/i con regex case-insensitive por si PlutoTV alterna
-    // la capitalización ("Watch Now" vs "Watch now") según el tipo de contenido.
+    // CTA principal de reproducción en la página de detalles.
+    // PlutoTV puede usar <button> o <a> estilizado como botón según el tipo de contenido:
+    //   - Movies: "Watch Now"
+    //   - Series: "Watch Now" (primer episodio) o "Start Watching"
+    // Se busca en ambos tipos de elemento con regex case-insensitive para cubrir
+    // variantes de capitalización y texto ("Watch Now", "Watch now", "Start Watching").
     this.watchNowButton = page
-      .locator('button')
-      .filter({ hasText: /Watch Now/i })
+      .locator('button, a')
+      .filter({ hasText: /Watch Now|Start Watching/i })
       .first();
   }
 
@@ -43,8 +46,10 @@ class DetailsPage {
    *
    * @param {number} timeout - tiempo máximo de espera en ms (default: 25 segundos)
    */
-  async waitForPage(timeout = 25000) {
-    // Espera que el botón "Watch Now" sea visible → página de detalles cargada
+  async waitForPage(timeout = 40000) {
+    // Espera que el CTA principal de reproducción sea visible → página de detalles cargada.
+    // Timeout aumentado a 40 s porque la details page de PlutoTV tiene contenido rico
+    // (imágenes, metadatos, elenco, episodios) que puede tardar más en hidratarse.
     await this.watchNowButton.waitFor({ state: 'visible', timeout });
   }
 

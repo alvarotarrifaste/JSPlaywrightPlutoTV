@@ -23,9 +23,9 @@ class PlayerPage {
    * Espera a que el elemento <video> sea visible en la pantalla.
    * Esto confirma que el player fue montado por PlutoTV después del click.
    *
-   * @param {number} timeout - tiempo máximo de espera en ms (default: 25 segundos)
+   * @param {number} timeout - tiempo máximo de espera en ms (default: 30 segundos)
    */
-  async waitForPlayer(timeout = 25000) {
+  async waitForPlayer(timeout = 30000) {
     await this.videoElement.waitFor({ state: 'visible', timeout });
   }
 
@@ -39,9 +39,13 @@ class PlayerPage {
    * getBoundingClientRect() devuelve la posición y tamaño del elemento en píxeles.
    * window.innerWidth/innerHeight son las dimensiones visibles del viewport.
    *
-   * @param {number} timeout - tiempo máximo de espera en ms (default: 20 segundos)
+   * Timeout aumentado a 25 s (era 20 s) para cubrir casos donde la animación de
+   * expansión del player es más lenta (páginas Live TV, On Demand con carga de DRM).
+   * El step que llama a este método tiene 60 s de budget total (setDefaultTimeout).
+   *
+   * @param {number} timeout - tiempo máximo de espera en ms (default: 25 segundos)
    */
-  async waitForFullScreenLayout(timeout = 20000) {
+  async waitForFullScreenLayout(timeout = 25000) {
     await this.page.waitForFunction(
       () => {
         const video = document.querySelector('video');

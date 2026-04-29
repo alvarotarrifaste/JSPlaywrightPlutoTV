@@ -64,9 +64,11 @@ When('I click the {string} button on the hero carousel', async function (buttonT
 /**
  * Step: "Then the video player should be displayed in full screen"
  *
- * Crea el Page Object del player y ejecuta dos validaciones en secuencia:
- * 1. Espera que el elemento <video> aparezca en el DOM y sea visible
- * 2. Espera que el video ocupe >= 85% del viewport (confirmando fullscreen)
+ * Valida que el player abrió en modo fullscreen: el <video> es visible Y ocupa
+ * al menos el 85% del ancho y alto del viewport.
+ *
+ * Se usa para escenarios de la Home page, donde hacer click en el hero CTA
+ * navega a una página de player dedicada (pantalla completa).
  *
  * Si alguna de las dos condiciones no se cumple en el tiempo dado, el step falla
  * y el hook After captura un screenshot automáticamente.
@@ -79,6 +81,24 @@ Then('the video player should be displayed in full screen', async function () {
 
   // Luego esperamos que ocupe el fullscreen (puede haber una animación de transición)
   await this.playerPage.waitForFullScreenLayout();
+});
+
+/**
+ * Step: "Then the video player should be visible"
+ *
+ * Valida únicamente que el elemento <video> apareció y es visible en pantalla.
+ * NO valida fullscreen — se usa para el escenario de Live TV page donde el player
+ * es embebido: el canal se reproduce en la zona del hero mientras el EPG
+ * y el strip de canales permanecen visibles debajo del video.
+ *
+ * Este comportamiento es diferente al de la Home page (que abre un player fullscreen).
+ * Ambas validaciones son correctas para sus respectivos contextos de la plataforma.
+ */
+Then('the video player should be visible', async function () {
+  this.playerPage = new PlayerPage(this.page);
+
+  // Solo verificamos que el <video> montó y es visible — sin chequeo de dimensiones
+  await this.playerPage.waitForPlayer();
 });
 
 /**
