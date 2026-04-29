@@ -24,15 +24,24 @@ JSPlaywrightPlutoTV/
 │       └── e2e-tests.yml          # CI pipeline (runs on push/PR to main)
 │
 ├── features/                      # BDD feature files (Gherkin)
-│   └── home/
-│       └── playbackFromHeroCarousel.feature
+│   ├── home/
+│   │   └── playbackFromHeroCarousel.feature
+│   ├── live-tv/
+│   │   └── playbackFromHeroCarouselLiveTvPage.feature
+│   └── on-demand/
+│       └── playbackFromHeroCarouselOnDemandPage.feature
 │
 ├── pages/                         # Page Object Model (POM)
-│   ├── HomePage.js                # Home page + hero carousel interactions
-│   └── PlayerPage.js              # Video player validations
+│   ├── HomePage.js                # Home page: navigate, hero carousel, nav button
+│   ├── LiveTvPage.js              # Live TV page: wait for page, hero carousel
+│   ├── OnDemandPage.js            # On Demand page: wait for page, hero carousel (dots)
+│   ├── DetailsPage.js             # VOD details page: wait for page, Watch Now
+│   └── PlayerPage.js              # Video player validations (all sections)
 │
 ├── step-definitions/              # Cucumber step implementations
-│   └── playbackFromHeroCarouselSteps.js
+│   ├── playbackFromHeroCarouselSteps.js          # Shared steps (home page, carousel, player)
+│   ├── playbackFromHeroCarouselLiveTvPageSteps.js # Live TV navigation step
+│   └── playbackFromHeroCarouselOnDemandPageSteps.js # On Demand nav + details steps
 │
 ├── support/                       # Cucumber support files
 │   ├── world.js                   # PlaywrightWorld (browser lifecycle + default timeout)
@@ -68,11 +77,17 @@ npm test
 # Headed mode (visible browser — for local development)
 npm run test:headed
 
-# Run only Live TV scenarios
-npm test -- --tags @live-tv
+# Run only Home page scenarios
+npm test -- --tags "@live-tv or @vod"
 
-# Run only VOD scenarios
-npm test -- --tags @vod
+# Run only Live TV page scenario
+npm test -- --tags @live-tv-page
+
+# Run only On Demand page scenario
+npm test -- --tags @on-demand-page
+
+# Run all playback scenarios
+npm test
 
 # Generate HTML report
 npm run test:report
@@ -90,8 +105,24 @@ Validates that users can initiate playback directly from the hero carousel on th
 
 | Tag | Scenario | Description |
 |---|---|---|
-| `@live-tv` | PlaybackValidationFromHeroCarousel - Live TV | Clicks **Watch Live** on the hero carousel, validates fullscreen player opens and Live TV playback starts |
-| `@vod` | PlaybackValidationFromHeroCarousel - VOD | Clicks **Play Now** on the hero carousel, validates fullscreen player opens and VOD playback starts |
+| `@live-tv` | PlaybackValidationFromHeroCarousel - Live TV | Clicks **Watch Live** on the home hero carousel, validates fullscreen player opens and Live TV playback starts |
+| `@vod` | PlaybackValidationFromHeroCarousel - VOD | Clicks **Play Now** on the home hero carousel, validates fullscreen player opens and VOD playback starts |
+
+### `features/live-tv/playbackFromHeroCarouselLiveTvPage.feature`
+
+Validates playback initiation from the hero carousel on the Live TV section page.
+
+| Tag | Scenario | Description |
+|---|---|---|
+| `@live-tv-page` | PlaybackValidationFromHeroCarouselLiveTvPage | Navigates to **Live TV** via top nav, clicks **Watch Live Channel** on the Live TV hero carousel, validates fullscreen player and playback |
+
+### `features/on-demand/playbackFromHeroCarouselOnDemandPage.feature`
+
+Validates VOD playback initiation from the On Demand section page via the details screen.
+
+| Tag | Scenario | Description |
+|---|---|---|
+| `@on-demand-page` | PlaybackValidationFromHeroCarouselOnDemandPage | Navigates to **On Demand** via top nav, clicks **Details** on the hero carousel, clicks **Watch Now** on the details page, validates fullscreen player and playback |
 
 ---
 

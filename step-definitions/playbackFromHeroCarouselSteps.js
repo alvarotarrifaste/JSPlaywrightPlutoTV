@@ -23,10 +23,18 @@ const PlayerPage = require('../pages/PlayerPage');
  * Crea una instancia del Page Object HomePage y navega a la URL.
  * Guardamos la instancia en `this.homePage` para reutilizarla en los steps siguientes
  * (When, Then) del mismo escenario.
+ *
+ * También inicializa `this.activeCarouselPage` apuntando a homePage.
+ * Los steps de navegación (Live TV, On Demand) sobrescribirán este valor
+ * con el Page Object de la sección a la que naveguen.
  */
 Given('I open the PlutoTV home page', async function () {
   this.homePage = new HomePage(this.page);
   await this.homePage.navigate();
+
+  // La home page es el carousel activo por defecto.
+  // Si el escenario navega a otra sección, este valor se sobrescribe en los steps de navegación.
+  this.activeCarouselPage = this.homePage;
 });
 
 /**
@@ -34,16 +42,23 @@ Given('I open the PlutoTV home page', async function () {
  *
  * {string} es un parámetro de Cucumber que captura el texto entre comillas del feature.
  * Ejemplos:
- *   When I click the "Watch Live" button → buttonText = "Watch Live"
- *   When I click the "Play Now" button   → buttonText = "Play Now"
+ *   When I click the "Watch Live" button        → home page (Live TV slide)
+ *   When I click the "Play Now" button          → home page (VOD slide)
+ *   When I click the "Watch Live Channel" button → Live TV page
+ *   When I click the "Details" button           → On Demand page
  *
- * Esto permite reutilizar el mismo step para diferentes tipos de contenido
- * sin duplicar código.
+ * Usa `this.activeCarouselPage` en lugar de `this.homePage` directamente.
+ * Esto permite que el mismo step funcione para el carousel de cualquier sección:
+ * Home, Live TV u On Demand, según a qué página haya navegado el escenario antes.
+ *
+ * `this.activeCarouselPage` es asignado por:
+ *   - Este mismo Given (→ HomePage) para escenarios que no navegan
+ *   - Los steps "I click the Live TV/On Demand navigation button" para los demás
  *
  * @param {string} buttonText - texto del botón a clickear en el carousel
  */
 When('I click the {string} button on the hero carousel', async function (buttonText) {
-  await this.homePage.clickHeroCarouselButton(buttonText);
+  await this.activeCarouselPage.clickHeroCarouselButton(buttonText);
 });
 
 /**

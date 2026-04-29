@@ -81,6 +81,30 @@ class HomePage {
 
     throw new Error(`"${buttonText}" button not found in hero carousel after checking ${maxSlides} slides`);
   }
+
+  /**
+   * Hace clic en un link del menú de navegación superior de PlutoTV.
+   *
+   * La barra superior contiene links como "Home", "Live TV", "On Demand", "Search".
+   * Son elementos <a> que llevan al usuario a las distintas secciones.
+   *
+   * Se filtra por texto visible porque cada link tiene un ícono SVG + texto:
+   * filter({ hasText }) detecta el texto como substring aunque haya hijos SVG en el elemento.
+   *
+   * Este método solo hace click — la espera de que la nueva página esté lista
+   * es responsabilidad del Page Object de la página destino (LiveTvPage, OnDemandPage, etc.)
+   *
+   * @param {string} navLabel - texto del link de navegación: "Live TV", "On Demand", etc.
+   */
+  async clickNavButton(navLabel) {
+    const navLink = this.page
+      .locator('a')
+      .filter({ hasText: navLabel })
+      .first();
+
+    await navLink.waitFor({ state: 'visible', timeout: 10000 });
+    await navLink.click();
+  }
 }
 
 module.exports = HomePage;
