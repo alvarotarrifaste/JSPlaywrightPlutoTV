@@ -1,61 +1,61 @@
 /**
- * playbackFromHeroCarouselSteps.js — Step definitions para el feature PlaybackFromHeroCarousel
+ * playbackFromHeroCarouselSteps.js — Step definitions for the PlaybackFromHeroCarousel feature
  *
- * Cada función aquí implementa una línea del archivo .feature.
- * Cucumber matchea el texto del step con la expresión en Given/When/Then
- * y ejecuta la función correspondiente.
+ * Each function here implements a line from the .feature file.
+ * Cucumber matches the step text with the expression in Given/When/Then
+ * and executes the corresponding function.
  *
- * `this` dentro de cada función es el PlaywrightWorld (support/world.js),
- * por eso podemos acceder a this.page, this.homePage, this.playerPage, etc.
+ * `this` inside each function is the PlaywrightWorld (support/world.js),
+ * which is why we can access this.page, this.homePage, this.playerPage, etc.
  *
- * Los steps usan `async/await` porque todas las acciones de Playwright son asíncronas
- * (el browser necesita tiempo para ejecutar cada acción).
+ * Steps use `async/await` because all Playwright actions are asynchronous
+ * (the browser needs time to execute each action).
  */
 
 const { Given, When, Then } = require('@cucumber/cucumber');
-const { expect } = require('@playwright/test'); // librería de aserciones de Playwright
+const { expect } = require('@playwright/test'); // Playwright assertions library
 const HomePage = require('../pages/HomePage');
 const PlayerPage = require('../pages/PlayerPage');
 
 /**
  * Step: "Given I open the PlutoTV home page"
  *
- * Crea una instancia del Page Object HomePage y navega a la URL.
- * Guardamos la instancia en `this.homePage` para reutilizarla en los steps siguientes
- * (When, Then) del mismo escenario.
+ * Creates a HomePage Page Object instance and navigates to the URL.
+ * We store the instance in `this.homePage` to reuse it in subsequent steps
+ * (When, Then) within the same scenario.
  *
- * También inicializa `this.activeCarouselPage` apuntando a homePage.
- * Los steps de navegación (Live TV, On Demand) sobrescribirán este valor
- * con el Page Object de la sección a la que naveguen.
+ * Also initializes `this.activeCarouselPage` pointing to homePage.
+ * Navigation steps (Live TV, On Demand) will overwrite this value
+ * with the Page Object for the section they navigate to.
  */
 Given('I open the PlutoTV home page', async function () {
   this.homePage = new HomePage(this.page);
   await this.homePage.navigate();
 
-  // La home page es el carousel activo por defecto.
-  // Si el escenario navega a otra sección, este valor se sobrescribe en los steps de navegación.
+  // Home page is the active carousel by default.
+  // If the scenario navigates to another section, this value is overwritten in the navigation steps.
   this.activeCarouselPage = this.homePage;
 });
 
 /**
  * Step: "When I click the {string} button on the hero carousel"
  *
- * {string} es un parámetro de Cucumber que captura el texto entre comillas del feature.
- * Ejemplos:
+ * {string} is a Cucumber parameter that captures the text between quotes in the feature.
+ * Examples:
  *   When I click the "Watch Live" button        → home page (Live TV slide)
  *   When I click the "Play Now" button          → home page (VOD slide)
  *   When I click the "Watch Live Channel" button → Live TV page
  *   When I click the "Details" button           → On Demand page
  *
- * Usa `this.activeCarouselPage` en lugar de `this.homePage` directamente.
- * Esto permite que el mismo step funcione para el carousel de cualquier sección:
- * Home, Live TV u On Demand, según a qué página haya navegado el escenario antes.
+ * Uses `this.activeCarouselPage` instead of `this.homePage` directly.
+ * This allows the same step to work for the carousel of any section:
+ * Home, Live TV, or On Demand — depending on where the scenario navigated.
  *
- * `this.activeCarouselPage` es asignado por:
- *   - Este mismo Given (→ HomePage) para escenarios que no navegan
- *   - Los steps "I click the Live TV/On Demand navigation button" para los demás
+ * `this.activeCarouselPage` is assigned by:
+ *   - This same Given (→ HomePage) for scenarios that do not navigate away
+ *   - The "I click the Live TV/On Demand navigation button" steps for the others
  *
- * @param {string} buttonText - texto del botón a clickear en el carousel
+ * @param {string} buttonText - text of the button to click in the carousel
  */
 When('I click the {string} button on the hero carousel', async function (buttonText) {
   await this.activeCarouselPage.clickHeroCarouselButton(buttonText);
@@ -64,50 +64,50 @@ When('I click the {string} button on the hero carousel', async function (buttonT
 /**
  * Step: "Then the video player should be displayed in full screen"
  *
- * Valida que el player abrió en modo fullscreen: el <video> es visible Y ocupa
- * al menos el 85% del ancho y alto del viewport.
+ * Validates that the player opened in fullscreen mode: the <video> is visible AND
+ * occupies at least 85% of the viewport width and height.
  *
- * Se usa para escenarios de la Home page, donde hacer click en el hero CTA
- * navega a una página de player dedicada (pantalla completa).
+ * Used for Home page scenarios where clicking the hero CTA navigates to a
+ * dedicated player page (full screen).
  *
- * Si alguna de las dos condiciones no se cumple en el tiempo dado, el step falla
- * y el hook After captura un screenshot automáticamente.
+ * If either condition is not met within the given time, the step fails
+ * and the After hook captures a screenshot automatically.
  */
 Then('the video player should be displayed in full screen', async function () {
   this.playerPage = new PlayerPage(this.page);
 
-  // Primero esperamos que el elemento <video> exista y sea visible
+  // First wait for the <video> element to exist and be visible
   await this.playerPage.waitForPlayer();
 
-  // Luego esperamos que ocupe el fullscreen (puede haber una animación de transición)
+  // Then wait for it to fill the fullscreen (there may be a transition animation)
   await this.playerPage.waitForFullScreenLayout();
 });
 
 /**
  * Step: "Then the video player should be visible"
  *
- * Valida únicamente que el elemento <video> apareció y es visible en pantalla.
- * NO valida fullscreen — se usa para el escenario de Live TV page donde el player
- * es embebido: el canal se reproduce en la zona del hero mientras el EPG
- * y el strip de canales permanecen visibles debajo del video.
+ * Validates only that the <video> element appeared and is visible on screen.
+ * Does NOT validate fullscreen — used for the Live TV page scenario where the player
+ * is embedded: the channel plays in the hero area while the EPG
+ * and channel strip remain visible below the video.
  *
- * Este comportamiento es diferente al de la Home page (que abre un player fullscreen).
- * Ambas validaciones son correctas para sus respectivos contextos de la plataforma.
+ * This behavior differs from the Home page (which opens a fullscreen player).
+ * Both validations are correct for their respective platform contexts.
  */
 Then('the video player should be visible', async function () {
   this.playerPage = new PlayerPage(this.page);
 
-  // Solo verificamos que el <video> montó y es visible — sin chequeo de dimensiones
+  // Only verify that the <video> mounted and is visible — no dimension check
   await this.playerPage.waitForPlayer();
 });
 
 /**
  * Step: "And the playback should be active"
  *
- * Valida que el video está efectivamente reproduciendo (o cargando activamente en DRM).
- * Reutiliza `this.playerPage` creado en el step anterior.
+ * Validates that the video is actually playing (or actively loading under DRM).
+ * Reuses `this.playerPage` created in the previous step.
  *
- * Si el video sigue pausado o sin fuente después del timeout, el step falla.
+ * If the video remains paused or without a source after the timeout, the step fails.
  */
 Then('the playback should be active', async function () {
   await this.playerPage.waitForPlayback();

@@ -1,49 +1,49 @@
 /**
- * PlayerPage.js — Page Object para el reproductor de video de PlutoTV
+ * PlayerPage.js — Page Object for the PlutoTV video player
  *
- * Contiene todas las validaciones relacionadas con el player:
- * - Detectar que el player apareció en pantalla
- * - Confirmar que está en modo fullscreen
- * - Confirmar que el playback está activo
+ * Contains all validations related to the player:
+ * - Detect that the player appeared on screen
+ * - Confirm it is in fullscreen mode
+ * - Confirm that playback is active
  */
 
 class PlayerPage {
   /**
-   * @param {import('playwright').Page} page - instancia de la página de Playwright
+   * @param {import('playwright').Page} page - Playwright page instance
    */
   constructor(page) {
     this.page = page;
 
-    // Selector del elemento <video> nativo del HTML
-    // PlutoTV renderiza el video directamente en el DOM principal (no en iframe separado)
+    // Selector for the native HTML <video> element
+    // PlutoTV renders the video directly in the main DOM (not inside a separate iframe)
     this.videoElement = page.locator('video');
   }
 
   /**
-   * Espera a que el elemento <video> sea visible en la pantalla.
-   * Esto confirma que el player fue montado por PlutoTV después del click.
+   * Waits for the <video> element to be visible on screen.
+   * This confirms the player was mounted by PlutoTV after the click.
    *
-   * @param {number} timeout - tiempo máximo de espera en ms (default: 30 segundos)
+   * @param {number} timeout - maximum wait time in ms (default: 30 seconds)
    */
   async waitForPlayer(timeout = 30000) {
     await this.videoElement.waitFor({ state: 'visible', timeout });
   }
 
   /**
-   * Espera hasta que el video ocupe al menos el 85% del ancho y alto de la ventana.
-   * Esto valida que el player está en modo fullscreen (no en mini-player docked).
+   * Waits until the video occupies at least 85% of the window width and height.
+   * This validates that the player is in fullscreen mode (not in a docked mini-player).
    *
-   * Usa waitForFunction en lugar de una verificación puntual porque el player
-   * tiene una animación de transición: primero aparece pequeño y luego se expande.
+   * Uses waitForFunction instead of a one-shot check because the player has a
+   * transition animation: it first appears small and then expands.
    *
-   * getBoundingClientRect() devuelve la posición y tamaño del elemento en píxeles.
-   * window.innerWidth/innerHeight son las dimensiones visibles del viewport.
+   * getBoundingClientRect() returns the element's position and size in pixels.
+   * window.innerWidth/innerHeight are the visible viewport dimensions.
    *
-   * Timeout aumentado a 25 s (era 20 s) para cubrir casos donde la animación de
-   * expansión del player es más lenta (páginas Live TV, On Demand con carga de DRM).
-   * El step que llama a este método tiene 60 s de budget total (setDefaultTimeout).
+   * Timeout increased to 25 s (was 20 s) to cover cases where the player expansion
+   * animation is slower (Live TV pages, On Demand with DRM loading).
+   * The step that calls this method has a 60 s total budget (setDefaultTimeout).
    *
-   * @param {number} timeout - tiempo máximo de espera en ms (default: 25 segundos)
+   * @param {number} timeout - maximum wait time in ms (default: 25 seconds)
    */
   async waitForFullScreenLayout(timeout = 25000) {
     await this.page.waitForFunction(
@@ -61,28 +61,28 @@ class PlayerPage {
   }
 
   /**
-   * Espera hasta confirmar que el playback está activo.
+   * Waits until playback is confirmed as active.
    *
-   * PlutoTV usa dos mecanismos distintos según el tipo de contenido:
+   * PlutoTV uses two different mechanisms depending on content type:
    *
-   * LIVE TV (ej: canal en vivo):
-   *   El stream MPEG-DASH entrega datos de inmediato.
-   *   readyState llega a >= 3 (HAVE_FUTURE_DATA) rápidamente,
-   *   confirmando que hay suficiente buffer para reproducir.
+   * LIVE TV (e.g. live channel):
+   *   The MPEG-DASH stream delivers data immediately.
+   *   readyState reaches >= 3 (HAVE_FUTURE_DATA) quickly,
+   *   confirming enough buffer is available to play.
    *
-   * VOD — Movies/Series (contenido bajo demanda):
-   *   PlutoTV usa Widevine DRM. El video se carga como un blob URL
-   *   (blob:https://pluto.tv/...) mientras el browser negocia la licencia DRM.
-   *   En este estado readyState puede quedarse en 0 (HAVE_NOTHING) por más
-   *   de 30 segundos, pero networkState === 2 (NETWORK_LOADING) confirma
-   *   que el browser está descargando activamente los segmentos cifrados.
+   * VOD — Movies/Series (on-demand content):
+   *   PlutoTV uses Widevine DRM. The video loads as a blob URL
+   *   (blob:https://pluto.tv/...) while the browser negotiates the DRM license.
+   *   In this state readyState may stay at 0 (HAVE_NOTHING) for 30+ seconds,
+   *   but networkState === 2 (NETWORK_LOADING) confirms the browser is actively
+   *   downloading the encrypted segments.
    *
-   * La condición combina ambos casos:
-   *   - hasSource: el <video> tiene un src asignado (no es un elemento vacío)
-   *   - !video.paused: el browser ejecutó play() — no está pausado por el usuario
-   *   - readyState >= 3 OR networkState === 2: está reproduciendo O cargando activamente
+   * The condition covers both cases:
+   *   - hasSource: the <video> has a src assigned (not an empty element)
+   *   - !video.paused: the browser executed play() — not paused by the user
+   *   - readyState >= 3 OR networkState === 2: playing or actively buffering
    *
-   * @param {number} timeout - tiempo máximo de espera en ms (default: 30 segundos)
+   * @param {number} timeout - maximum wait time in ms (default: 30 seconds)
    */
   async waitForPlayback(timeout = 30000) {
     await this.page.waitForFunction(
@@ -90,11 +90,11 @@ class PlayerPage {
         const video = document.querySelector('video');
         if (!video) return false;
 
-        // Verifica que el <video> tenga una fuente asignada
+        // Verify the <video> has a source assigned
         const hasSource = video.src !== '' || video.currentSrc !== '';
 
-        // readyState >= 3: suficiente buffer para reproducir (Live TV)
-        // networkState === 2: descargando activamente segmentos DRM (VOD)
+        // readyState >= 3: enough buffer to play (Live TV)
+        // networkState === 2: actively downloading DRM segments (VOD)
         const isPlayingOrBuffering = !video.paused && (video.readyState >= 3 || video.networkState === 2);
 
         return hasSource && isPlayingOrBuffering;

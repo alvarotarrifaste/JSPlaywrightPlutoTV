@@ -1,47 +1,47 @@
 /**
- * OnDemandPage.js — Page Object para la sección On Demand de PlutoTV
+ * OnDemandPage.js — Page Object for the PlutoTV On Demand section
  *
- * Representa la pantalla /on-demand con su hero carousel en la parte superior.
- * A diferencia del hero de la home y de Live TV (que usan flechas next/prev),
- * el hero de On Demand usa indicadores de puntos (dots) con auto-rotación:
+ * Represents the /on-demand screen with its hero carousel at the top.
+ * Unlike the Home and Live TV carousels (which use next/prev arrows),
+ * the On Demand hero uses dot indicators with auto-rotation:
  *
- *   ‖  • • • • •   (pausa + 5 puntos de paginación)
+ *   ‖  • • • • •   (pause button + 5 pagination dots)
  *
- * Cada slide muestra una película o serie destacada con un único CTA visible:
- *   - "Details" (amarillo) → navega a la ficha de detalles del título
+ * Each slide shows a featured movie or series with a single visible CTA:
+ *   - "Details" (yellow) → navigates to the title detail page
  *
- * Por esta razón, clickHeroCarouselButton es más simple que en HomePage/LiveTvPage:
- * solo espera que el CTA sea visible y hace click, sin iterar slides con flechas.
+ * For this reason, clickHeroCarouselButton is simpler than in HomePage/LiveTvPage:
+ * it just waits for the CTA to be visible and clicks it, without iterating slides with arrows.
  *
- * Estructura de la página:
+ * Page structure:
  *   Hero carousel (auto-rotating, dots navigation)
- *   └── Slide activo: título, género, descripción, "Details"
- *   Carruseles de contenido: CBS Latest Episodes, Most Popular Movies, etc.
- *   Sidebar izquierdo: categorías (Featured, April Ghouls, Action, Comedy, etc.)
+ *   └── Active slide: title, genre, description, "Details"
+ *   Content carousels: CBS Latest Episodes, Most Popular Movies, etc.
+ *   Left sidebar: categories (Featured, April Ghouls, Action, Comedy, etc.)
  */
 
 class OnDemandPage {
   /**
-   * @param {import('playwright').Page} page - instancia de la página de Playwright
+   * @param {import('playwright').Page} page - Playwright page instance
    */
   constructor(page) {
     this.page = page;
   }
 
   /**
-   * Espera a que la página de On Demand esté cargada e interactiva.
+   * Waits for the On Demand page to be fully loaded and interactive.
    *
-   * 1. Espera que la URL contenga "on-demand" → navegación exitosa
-   * 2. Espera que el botón "Details" del hero sea visible → carousel hidratado
+   * 1. Waits for the URL to contain "on-demand" → navigation was successful
+   * 2. Waits for the "Details" hero button to be visible → carousel has hydrated
    *
-   * El hero de On Demand siempre muestra un "Details" button como único CTA,
-   * así que usarlo como señal de ready es confiable.
+   * The On Demand hero always shows a "Details" button as its only CTA,
+   * making it a reliable ready signal.
    */
   async waitForPage() {
-    // Espera que la URL cambie a /on-demand antes de buscar elementos
+    // Wait for the URL to change to /on-demand before looking for elements
     await this.page.waitForURL(/on-demand/, { timeout: 15000 });
 
-    // Espera que el botón "Details" del hero carousel sea visible
+    // Wait for the hero carousel "Details" button to be visible
     await this.page
       .locator('button')
       .filter({ hasText: 'Details' })
@@ -50,20 +50,20 @@ class OnDemandPage {
   }
 
   /**
-   * Hace click en el botón CTA visible en el hero carousel de On Demand.
+   * Clicks the CTA button visible on the On Demand hero carousel.
    *
-   * El hero de On Demand NO tiene flechas next/prev para iterar slides manualmente.
-   * Usa auto-rotación con dots como indicadores de paginación.
-   * El CTA del slide actual siempre es visible, así que no necesitamos iterar.
+   * The On Demand hero has NO next/prev arrows to iterate slides manually.
+   * It uses auto-rotation with dot indicators for pagination.
+   * The current slide's CTA is always visible, so no iteration is needed.
    *
-   * En el flujo de On Demand, este método se usa para hacer click en "Details",
-   * que lleva a la ficha de detalles del título para luego iniciar la reproducción.
+   * In the On Demand flow, this method is used to click "Details",
+   * which navigates to the title detail page before initiating playback.
    *
-   * @param {string} buttonText - texto del botón a clickear: "Details"
-   * @throws {Error} si el botón no está visible en el tiempo de espera
+   * @param {string} buttonText - text of the button to click: "Details"
+   * @throws {Error} if the button is not visible within the wait timeout
    */
   async clickHeroCarouselButton(buttonText) {
-    // El CTA del slide activo siempre está visible en el hero de On Demand
+    // The active slide CTA is always visible in the On Demand hero
     const btn = this.page.locator('button').filter({ hasText: buttonText }).first();
     await btn.waitFor({ state: 'visible', timeout: 10000 });
     await btn.click();

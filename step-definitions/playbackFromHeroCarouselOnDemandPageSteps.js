@@ -1,20 +1,20 @@
 /**
- * playbackFromHeroCarouselOnDemandPageSteps.js — Steps para el escenario PlaybackValidationFromHeroCarouselOnDemandPage
+ * playbackFromHeroCarouselOnDemandPageSteps.js — Steps for the PlaybackValidationFromHeroCarouselOnDemandPage scenario
  *
- * Implementa los steps específicos del flujo On Demand que no están en otros archivos:
- *   1. Navegación al menú On Demand
- *   2. Click en "Watch Now" desde la pantalla de detalles del título
+ * Implements the steps specific to the On Demand flow that are not in other files:
+ *   1. Navigation to the On Demand menu
+ *   2. Clicking "Watch Now" from the title detail screen
  *
- * Los steps compartidos (Given home page, carousel "Details" button, player validations)
- * son resueltos automáticamente por Cucumber desde playbackFromHeroCarouselSteps.js.
+ * Shared steps (Given home page, carousel "Details" button, player validations)
+ * are resolved automatically by Cucumber from playbackFromHeroCarouselSteps.js.
  *
- * Flujo completo del escenario:
+ * Full scenario flow:
  *   Given I open the PlutoTV home page              ← playbackFromHeroCarouselSteps.js
- *   When  I click the "On Demand" navigation button ← este archivo
- *   And   I click the "Details" button on the hero carousel  ← step compartido (usa OnDemandPage)
- *   And   I click the "Watch Now" button on the details page ← este archivo
- *   Then  the video player should be displayed in full screen ← step compartido
- *   And   the playback should be active                       ← step compartido
+ *   When  I click the "On Demand" navigation button ← this file
+ *   And   I click the "Details" button on the hero carousel  ← shared step (uses OnDemandPage)
+ *   And   I click the "Watch Now" button on the details page ← this file
+ *   Then  the video player should be displayed in full screen ← shared step
+ *   And   the playback should be active                       ← shared step
  */
 
 const { When } = require('@cucumber/cucumber');
@@ -24,27 +24,27 @@ const DetailsPage = require('../pages/DetailsPage');
 /**
  * Step: 'When I click the "On Demand" navigation button'
  *
- * Navega a la sección On Demand haciendo click en el link del menú superior.
+ * Navigates to the On Demand section by clicking the top menu link.
  *
- * Secuencia:
- * 1. Click en el link "On Demand" del nav superior (via HomePage.clickNavButton)
- * 2. Instancia OnDemandPage y espera que el hero carousel esté listo
- * 3. Establece OnDemandPage como carousel activo para el step "Details" que viene después
+ * Sequence:
+ * 1. Click the "On Demand" link in the top nav (via HomePage.clickNavButton)
+ * 2. Instantiate OnDemandPage and wait for the hero carousel to be ready
+ * 3. Set OnDemandPage as the active carousel for the "Details" step that follows
  *
- * Por qué texto literal y no {string}:
- *   Evita ambigüedad con el step "Live TV" definido en playbackFromHeroCarouselLiveTvPageSteps.js.
- *   Cada step es único con su texto literal → Cucumber no tiene conflicto de resolución.
+ * Why literal string instead of {string}:
+ *   Prevents ambiguity with the "Live TV" step defined in playbackFromHeroCarouselLiveTvPageSteps.js.
+ *   Each step is unique with its literal text → no Cucumber resolution conflict.
  */
 When('I click the "On Demand" navigation button', async function () {
-  // Paso 1: click en el link "On Demand" del menú superior
+  // Step 1: click the "On Demand" link in the top menu
   await this.homePage.clickNavButton('On Demand');
 
-  // Paso 2: instancia OnDemandPage y espera que el hero carousel esté hidratado
+  // Step 2: instantiate OnDemandPage and wait for the hero carousel to hydrate
   this.onDemandPage = new OnDemandPage(this.page);
   await this.onDemandPage.waitForPage();
 
-  // Paso 3: establece OnDemandPage como carousel activo
-  // El step "I click the {string} button on the hero carousel" llamará a
+  // Step 3: set OnDemandPage as the active carousel
+  // The "I click the {string} button on the hero carousel" step will call
   // this.onDemandPage.clickHeroCarouselButton("Details")
   this.activeCarouselPage = this.onDemandPage;
 });
@@ -52,26 +52,26 @@ When('I click the "On Demand" navigation button', async function () {
 /**
  * Step: 'And I click the "Watch Now" button on the details page'
  *
- * Este step se ejecuta DESPUÉS de que el step "Details" llevó al usuario
- * a la ficha de detalles del título (película o serie destacada).
+ * This step runs AFTER the "Details" step has navigated the user to the
+ * title detail page (featured movie or series).
  *
- * Secuencia:
- * 1. Instancia DetailsPage y espera que el botón "Watch Now" sea visible
- *    (señal de que la página de detalles cargó completamente)
- * 2. Hace click en "Watch Now" → PlutoTV abre el player con el contenido DRM
+ * Sequence:
+ * 1. Instantiate DetailsPage and wait for the "Watch Now" button to be visible
+ *    (signal that the detail page has fully loaded)
+ * 2. Click "Watch Now" → PlutoTV opens the player with the DRM-protected content
  *
- * Por qué crear DetailsPage aquí y no antes:
- *   La página de detalles no existe hasta que el step anterior ("Details" button)
- *   completa la navegación. Instanciarla aquí garantiza que `this.page`
- *   ya está en la URL correcta del título.
+ * Why create DetailsPage here and not earlier:
+ *   The detail page does not exist until the previous step ("Details" button)
+ *   completes the navigation. Instantiating it here guarantees that `this.page`
+ *   is already on the correct title URL.
  */
 When('I click the "Watch Now" button on the details page', async function () {
-  // Instancia DetailsPage con la página actual (que ahora muestra la ficha del título)
+  // Instantiate DetailsPage with the current page (now showing the title detail)
   this.detailsPage = new DetailsPage(this.page);
 
-  // Espera que el botón "Watch Now" sea visible → página de detalles completamente cargada
+  // Wait for "Watch Now" to be visible → detail page fully loaded
   await this.detailsPage.waitForPage();
 
-  // Hace click en "Watch Now" → inicia reproducción (con negociación DRM de Widevine)
+  // Click "Watch Now" → starts playback (with Widevine DRM license negotiation)
   await this.detailsPage.clickWatchNow();
 });

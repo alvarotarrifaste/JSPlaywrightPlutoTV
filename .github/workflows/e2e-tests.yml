@@ -6,9 +6,9 @@ on:
   pull_request:
     branches: [main]
 
-# FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 silencia el warning de deprecación de Node.js 20
-# en las actions de GitHub (checkout, setup-node, upload-artifact).
-# Las actions internas usan su propio runtime de Node — esto no afecta la versión del proyecto.
+# FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 silences the Node.js 20 deprecation warning
+# in GitHub Actions (checkout, setup-node, upload-artifact).
+# These actions use their own internal Node runtime — this does not affect the project's Node version.
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -26,13 +26,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # --with-deps instala las dependencias del sistema necesarias para Chromium en Linux
-      # (libglib, libnss, libatk, etc.) que no vienen pre-instaladas en ubuntu-latest
+      # --with-deps installs the system-level dependencies required by Chromium on Linux
+      # (libglib, libnss, libatk, etc.) that are not pre-installed on ubuntu-latest
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      # CI_MODE=true le dice a world.js que use opciones de browser optimizadas para CI:
-      # --no-sandbox, User-Agent real, viewport 1920x1080, locale en-US
+      # CI_MODE=true tells world.js to use CI-optimized browser options:
+      # --no-sandbox, real User-Agent, 1920x1080 viewport, en-US locale
       - name: Run E2E tests
         run: npm test
         env:
@@ -44,5 +44,5 @@ jobs:
         with:
           name: cucumber-report
           path: reports/
-          # retention-days: cuántos días se conserva el artifact en GitHub
+          # retention-days: how many days the artifact is kept on GitHub
           retention-days: 7

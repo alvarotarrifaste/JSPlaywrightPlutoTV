@@ -1,20 +1,20 @@
 /**
- * playbackFromHeroCarouselLiveTvPageSteps.js — Steps para el escenario PlaybackValidationFromHeroCarouselLiveTvPage
+ * playbackFromHeroCarouselLiveTvPageSteps.js — Steps for the PlaybackValidationFromHeroCarouselLiveTvPage scenario
  *
- * Este archivo implementa los steps específicos de la sección Live TV.
- * Los steps compartidos (Given home page, carousel button, player validations)
- * están definidos en playbackFromHeroCarouselSteps.js y Cucumber los resuelve
- * automáticamente ya que carga todos los archivos de step-definitions/ juntos.
+ * This file implements the steps specific to the Live TV section.
+ * Shared steps (Given home page, carousel button, player validations)
+ * are defined in playbackFromHeroCarouselSteps.js and resolved automatically
+ * by Cucumber since it loads all step-definitions/ files together.
  *
- * Este archivo añade únicamente el step de navegación al menú Live TV:
+ * This file adds only the navigation step for the Live TV menu:
  *   When I click the "Live TV" navigation button
  *
- * Flujo del escenario:
- *   Given I open the PlutoTV home page          ← playbackFromHeroCarouselSteps.js
- *   When  I click the "Live TV" navigation button  ← este archivo
- *   And   I click the "Watch Live Channel" button on the hero carousel ← steps compartido
- *   Then  the video player should be displayed in full screen  ← steps compartido
- *   And   the playback should be active                        ← steps compartido
+ * Scenario flow:
+ *   Given I open the PlutoTV home page              ← playbackFromHeroCarouselSteps.js
+ *   When  I click the "Live TV" navigation button   ← this file
+ *   And   I click the "Watch Live Channel" button on the hero carousel ← shared step
+ *   Then  the video player should be visible                           ← shared step
+ *   And   the playback should be active                                ← shared step
  */
 
 const { When } = require('@cucumber/cucumber');
@@ -23,30 +23,30 @@ const LiveTvPage = require('../pages/LiveTvPage');
 /**
  * Step: 'When I click the "Live TV" navigation button'
  *
- * Secuencia de acciones:
- * 1. Llama a HomePage.clickNavButton('Live TV') → hace click en el link del nav superior
- * 2. Instancia LiveTvPage con la misma referencia de `this.page`
- *    (Playwright mantiene la misma instancia de página aunque la URL cambie)
- * 3. Espera a que la Live TV page esté completamente hidratada (waitForPage)
- * 4. Actualiza `this.activeCarouselPage` → el step de carousel usará LiveTvPage
- *    en lugar de HomePage para encontrar el botón "Watch Live Channel"
+ * Sequence of actions:
+ * 1. Calls HomePage.clickNavButton('Live TV') → clicks the top nav link
+ * 2. Instantiates LiveTvPage with the same `this.page` reference
+ *    (Playwright keeps the same page instance even when the URL changes)
+ * 3. Waits for the Live TV page to be fully hydrated (waitForPage)
+ * 4. Updates `this.activeCarouselPage` → the carousel step will use LiveTvPage
+ *    instead of HomePage to find the "Watch Live Channel" button
  *
- * Por qué usar texto literal en lugar de {string}:
- *   Si usáramos When('I click the {string} navigation button'), Cucumber
- *   podría crear ambigüedad con el step de On Demand si ambos usan la misma expresión.
- *   Con texto literal cada step es único y no hay riesgo de conflicto.
+ * Why use a literal string instead of {string}:
+ *   If we used When('I click the {string} navigation button'), Cucumber
+ *   could create ambiguity with the On Demand step if both use the same expression.
+ *   With a literal string each step is unique and there is no risk of conflict.
  */
 When('I click the "Live TV" navigation button', async function () {
-  // Paso 1: click en el link "Live TV" del menú superior (definido en HomePage)
+  // Step 1: click the "Live TV" link in the top menu (defined in HomePage)
   await this.homePage.clickNavButton('Live TV');
 
-  // Paso 2: instancia el Page Object de Live TV (la página ya navegó gracias al click)
+  // Step 2: instantiate the Live TV Page Object (the page already navigated after the click)
   this.liveTvPage = new LiveTvPage(this.page);
 
-  // Paso 3: espera que la página de Live TV esté cargada e interactiva
+  // Step 3: wait for the Live TV page to be loaded and interactive
   await this.liveTvPage.waitForPage();
 
-  // Paso 4: establece LiveTvPage como el carousel activo para el siguiente step
-  // El step "I click the {string} button on the hero carousel" usará esta referencia
+  // Step 4: set LiveTvPage as the active carousel for the next step
+  // The "I click the {string} button on the hero carousel" step will use this reference
   this.activeCarouselPage = this.liveTvPage;
 });

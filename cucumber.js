@@ -1,35 +1,35 @@
 /**
- * cucumber.js — Configuración central de Cucumber
+ * cucumber.js — Central Cucumber configuration
  *
- * Este archivo le dice a Cucumber:
- *   - Dónde encontrar los feature files (.feature)
- *   - Dónde encontrar los step definitions y support files (.js)
- *   - Qué formato usar para los reportes
- *   - Cuántos escenarios correr en paralelo
- *   - El timeout global por step (sobreescrito también en support/world.js)
+ * This file tells Cucumber:
+ *   - Where to find feature files (.feature)
+ *   - Where to find step definitions and support files (.js)
+ *   - Which report format to use
+ *   - How many scenarios to run in parallel
+ *   - The global timeout per step (also overridden in support/world.js)
  */
 
 module.exports = {
   default: {
-    // Archivos que Cucumber debe cargar antes de correr los tests:
-    // support/**/*.js → world.js y hooks.js (configuración del browser)
-    // step-definitions/**/*.js → implementación de los Given/When/Then
+    // Files Cucumber must load before running tests:
+    // support/**/*.js → world.js and hooks.js (browser configuration)
+    // step-definitions/**/*.js → Given/When/Then implementations
     require: ['support/**/*.js', 'step-definitions/**/*.js'],
 
-    // Dónde están los feature files (los .feature con los escenarios en Gherkin)
+    // Where the feature files are (the .feature files with Gherkin scenarios)
     paths: ['features/**/*.feature'],
 
-    // Formatos de reporte:
-    // 'progress-bar' → muestra una barra de progreso en la terminal
-    // 'html:reports/cucumber-report.html' → genera un reporte visual en HTML
+    // Report formats:
+    // 'progress-bar' → shows a progress bar in the terminal
+    // 'html:reports/cucumber-report.html' → generates a visual HTML report
     format: ['progress-bar', 'html:reports/cucumber-report.html'],
 
-    // Número de workers paralelos. Con 1, los escenarios corren uno por uno.
-    // Aumentar este número ejecuta varios escenarios simultáneamente (útil en CI).
+    // Number of parallel workers. With 1, scenarios run one at a time.
+    // Increasing this number runs several scenarios simultaneously (useful in CI).
     parallel: 1,
 
-    // Timeout global en ms. Sobreescrito por setDefaultTimeout() en support/world.js.
-    // Se mantiene aquí como referencia documental.
+    // Global timeout in ms. Overridden by setDefaultTimeout() in support/world.js.
+    // Kept here as documentation reference.
     timeout: 30000
   }
 };

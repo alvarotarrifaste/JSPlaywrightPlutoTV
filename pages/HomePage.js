@@ -1,80 +1,80 @@
 /**
- * HomePage.js — Page Object para la página principal de PlutoTV
+ * HomePage.js — Page Object for the PlutoTV home page
  *
- * El patrón Page Object Model (POM) centraliza todos los selectores
- * y acciones de una página en una sola clase. Los step definitions
- * no tocan el DOM directamente — siempre pasan por aquí.
- * Ventaja: si PlutoTV cambia un selector, solo se edita este archivo.
+ * The Page Object Model (POM) pattern centralizes all selectors
+ * and actions for a page into a single class. Step definitions
+ * never touch the DOM directly — they always go through here.
+ * Benefit: if PlutoTV changes a selector, only this file needs to be updated.
  */
 
 class HomePage {
   /**
-   * @param {import('playwright').Page} page - instancia de la página de Playwright
-   *        que viene del PlaywrightWorld (this.page en los steps)
+   * @param {import('playwright').Page} page - Playwright page instance
+   *        passed from PlaywrightWorld (this.page in the steps)
    */
   constructor(page) {
     this.page = page;
     this.url = 'https://pluto.tv/us/hub/home?lang=en';
 
-    // Selector del botón "siguiente" del hero carousel.
-    // PlutoTV usa CSS-in-JS con clases generadas (ej: nextButton-0-2-224).
-    // El selector [class*="nextButton"] coincide con cualquier clase que contenga
-    // "nextButton", haciéndolo robusto ante cambios en el número generado.
+    // "Next" button selector for the hero carousel.
+    // PlutoTV uses CSS-in-JS with generated class names (e.g. nextButton-0-2-224).
+    // The [class*="nextButton"] selector matches any class containing "nextButton",
+    // making it resilient to changes in the generated suffix number.
     this.nextSlideBtn = page.locator('button[class*="nextButton"]').first();
   }
 
   /**
-   * Navega a la home de PlutoTV y espera a que el hero carousel esté listo.
+   * Navigates to the PlutoTV home page and waits for the hero carousel to be ready.
    *
-   * waitUntil: 'domcontentloaded' → espera que el HTML base cargue (sin imágenes ni JS pesado)
-   * Luego espera el botón nextButton del carousel para confirmar que el JS de la página
-   * hidratró y el carousel está interactivo.
+   * waitUntil: 'domcontentloaded' → waits for the base HTML to load (without heavy images or JS)
+   * Then waits for the carousel nextButton to confirm that the page JS has hydrated
+   * and the carousel is interactive.
    */
   async navigate() {
     await this.page.goto(this.url, { waitUntil: 'domcontentloaded' });
 
-    // Esperamos el botón "next" del carousel como señal de que la página está lista
+    // Wait for the carousel "next" button as a signal that the page is ready
     await this.page.locator('button[class*="nextButton"]').waitFor({ state: 'visible', timeout: 20000 });
   }
 
   /**
-   * Busca y hace click en un botón del hero carousel según su texto.
-   * Si el botón no está visible en el slide actual, avanza al siguiente slide
-   * y vuelve a intentarlo, hasta un máximo de 10 slides.
+   * Finds and clicks a button in the hero carousel by its text.
+   * If the button is not visible on the current slide, advances to the next slide
+   * and retries, up to a maximum of 10 slides.
    *
-   * Esto es necesario porque el contenido del hero carousel es dinámico:
-   * a veces el primer slide es un canal Live, otras veces es un VOD.
+   * This is necessary because hero carousel content is dynamic:
+   * sometimes the first slide is a Live channel, other times it is a VOD title.
    *
-   * @param {string} buttonText - texto exacto del botón a clickear
-   *                              Ej: "Watch Live" para Live TV, "Play Now" para VOD
-   * @throws {Error} si el botón no se encontró en ninguno de los slides
+   * @param {string} buttonText - exact text of the button to click
+   *                              e.g. "Watch Live" for Live TV, "Play Now" for VOD
+   * @throws {Error} if the button was not found in any of the slides
    */
   async clickHeroCarouselButton(buttonText) {
     const maxSlides = 10;
 
     for (let i = 0; i < maxSlides; i++) {
-      // Busca un <button> cuyo texto sea exactamente `buttonText`
-      // .filter({ hasText }) es más robusto que el pseudo-selector CSS :has-text()
+      // Locate a <button> whose text matches exactly `buttonText`
+      // .filter({ hasText }) is more reliable than the CSS pseudo-selector :has-text()
       const btn = this.page.locator('button').filter({ hasText: buttonText }).first();
 
       try {
-        // Espera hasta 2 segundos a que el botón sea visible en este slide
+        // Wait up to 2 seconds for the button to be visible on this slide
         await btn.waitFor({ state: 'visible', timeout: 2000 });
         await btn.click();
-        return; // encontrado y clickeado — salimos del loop
+        return; // found and clicked — exit the loop
       } catch {
-        // El botón no está en este slide → avanzamos al siguiente
+        // Button not on this slide → advance to the next one
       }
 
       try {
-        // Hace click en la flecha ">" del carousel para pasar al siguiente slide
+        // Click the ">" arrow on the carousel to advance to the next slide
         await this.nextSlideBtn.waitFor({ state: 'visible', timeout: 2000 });
         await this.nextSlideBtn.click();
 
-        // Pequeña pausa para que la animación de transición del slide termine
+        // Short pause to let the slide transition animation finish
         await this.page.waitForTimeout(1500);
       } catch {
-        // No hay más slides disponibles — salimos del loop
+        // No more slides available — exit the loop
         break;
       }
     }
@@ -83,29 +83,29 @@ class HomePage {
   }
 
   /**
-   * Hace clic en un link del menú de navegación superior de PlutoTV.
+   * Clicks a link in the PlutoTV top navigation bar.
    *
-   * La barra superior contiene links hacia "Home", "Live TV", "On Demand", "Search".
-   * Cada link tiene una URL conocida en PlutoTV, por lo que usamos href como selector
-   * principal en lugar de texto. Esto es más robusto porque:
+   * The top bar contains links to "Home", "Live TV", "On Demand", and "Search".
+   * Each link has a known URL in PlutoTV, so we use the href as the primary selector
+   * rather than text. This is more reliable because:
    *
-   *   - PlutoTV es una React SPA que puede renderizar el <nav> al final del DOM
-   *     mediante portals, aunque sea visible en la parte superior de la pantalla.
-   *     Un selector solo por texto con .first() podría matchear un link de contenido
-   *     que aparezca antes en el DOM (por ejemplo, un card "On Demand").
+   *   - PlutoTV is a React SPA that may render the <nav> at the end of the DOM
+   *     via portals, even though it appears at the top of the screen visually.
+   *     A text-only selector with .first() could match a content card link that
+   *     appears earlier in the DOM (e.g. an "On Demand" card).
    *
-   *   - href es único e inequívoco para cada sección de la app.
+   *   - The href is unique and unambiguous for each section of the app.
    *
-   * Mapa de navLabel → fragmento de href esperado:
+   * navLabel → expected href fragment map:
    *   'Home'      → '/hub/home'
    *   'Live TV'   → '/live-tv'
    *   'On Demand' → '/on-demand'
    *   'Search'    → '/search'
    *
-   * @param {string} navLabel - etiqueta del link de navegación (usada para el mapa de hrefs)
+   * @param {string} navLabel - navigation link label (used for the href lookup map)
    */
   async clickNavButton(navLabel) {
-    // Mapa navLabel → fragmento de href para cada sección de PlutoTV
+    // Map of navLabel → href fragment for each PlutoTV section
     const hrefFragments = {
       'Home':      '/hub/home',
       'Live TV':   '/live-tv',
@@ -115,8 +115,8 @@ class HomePage {
 
     const hrefFragment = hrefFragments[navLabel];
 
-    // Selector primario: link por href (único y robusto frente a DOM portals)
-    // Si el navLabel no está en el mapa, cae al selector por texto como fallback
+    // Primary selector: link by href (unique and robust against DOM portals)
+    // Falls back to a text-based selector if navLabel is not in the map
     const navLink = hrefFragment
       ? this.page.locator(`a[href*="${hrefFragment}"]`).first()
       : this.page.locator('a').filter({ hasText: navLabel }).first();

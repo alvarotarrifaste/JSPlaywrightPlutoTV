@@ -1,33 +1,33 @@
 /**
- * DetailsPage.js — Page Object para la pantalla de detalles de un título VOD en PlutoTV
+ * DetailsPage.js — Page Object for the VOD title detail screen on PlutoTV
  *
- * Esta pantalla aparece al hacer click en "Details" desde el hero carousel de On Demand.
- * Muestra información del título (película o serie): imagen de fondo, título, descripción,
- * elenco, y los botones de acción principales:
- *   - "Watch Now" → inicia la reproducción desde el episodio/película más reciente
- *   - "Trailer"   → reproduce el tráiler del título (si está disponible)
+ * This screen appears after clicking "Details" from the On Demand hero carousel.
+ * It shows information about the title (movie or series): background image, title,
+ * description, cast, and the main action buttons:
+ *   - "Watch Now" → starts playback from the most recent episode/movie
+ *   - "Trailer"   → plays the title trailer (if available)
  *
- * La URL de esta página varía según el tipo de contenido:
+ * The URL for this page varies by content type:
  *   Movies:  pluto.tv/us/on-demand/movies/<slug>
  *   Series:  pluto.tv/us/on-demand/series/<slug>
  *
- * El contenido cargado depende del slide activo en el hero de On Demand al momento
- * de hacer click en "Details" — es dinámico y cambia entre sesiones.
+ * The loaded content depends on the active slide in the On Demand hero at the time
+ * "Details" was clicked — it is dynamic and changes between sessions.
  */
 
 class DetailsPage {
   /**
-   * @param {import('playwright').Page} page - instancia de la página de Playwright
+   * @param {import('playwright').Page} page - Playwright page instance
    */
   constructor(page) {
     this.page = page;
 
-    // CTA principal de reproducción en la página de detalles.
-    // PlutoTV puede usar <button> o <a> estilizado como botón según el tipo de contenido:
+    // Primary playback CTA on the details page.
+    // PlutoTV may use a <button> or a styled <a> element depending on content type:
     //   - Movies: "Watch Now"
-    //   - Series: "Watch Now" (primer episodio) o "Start Watching"
-    // Se busca en ambos tipos de elemento con regex case-insensitive para cubrir
-    // variantes de capitalización y texto ("Watch Now", "Watch now", "Start Watching").
+    //   - Series: "Watch Now" (first episode) or "Start Watching"
+    // We search both element types with a case-insensitive regex to cover
+    // capitalization variants and text alternatives.
     this.watchNowButton = page
       .locator('button, a')
       .filter({ hasText: /Watch Now|Start Watching/i })
@@ -35,31 +35,31 @@ class DetailsPage {
   }
 
   /**
-   * Espera a que la página de detalles esté lista para interactuar.
+   * Waits for the detail page to be ready for interaction.
    *
-   * Se usa la visibilidad del botón "Watch Now" como señal de que la página
-   * cargó completamente: si el botón está visible, el JS hidratró y el contenido
-   * del título está disponible para reproducir.
+   * The "Watch Now" button visibility is used as the signal that the page
+   * has fully loaded: if the button is visible, the JS has hydrated and the
+   * title content is available for playback.
    *
-   * No se espera un patrón de URL específico porque la URL varía según el título
-   * (movies vs series) y el slug del contenido (que cambia con cada sesión).
+   * A specific URL pattern is not awaited because the URL varies by title
+   * (movies vs series) and by the content slug (which changes each session).
    *
-   * @param {number} timeout - tiempo máximo de espera en ms (default: 25 segundos)
+   * @param {number} timeout - maximum wait time in ms (default: 40 seconds)
    */
   async waitForPage(timeout = 40000) {
-    // Espera que el CTA principal de reproducción sea visible → página de detalles cargada.
-    // Timeout aumentado a 40 s porque la details page de PlutoTV tiene contenido rico
-    // (imágenes, metadatos, elenco, episodios) que puede tardar más en hidratarse.
+    // Wait for the primary playback CTA to be visible → detail page has loaded.
+    // Timeout set to 40 s because PlutoTV's detail page includes rich content
+    // (images, metadata, cast, episodes) that may take longer to hydrate.
     await this.watchNowButton.waitFor({ state: 'visible', timeout });
   }
 
   /**
-   * Hace click en el botón "Watch Now" para iniciar la reproducción del título.
+   * Clicks the "Watch Now" button to start playback of the title.
    *
-   * Al hacer click, PlutoTV navega al player con el contenido seleccionado.
-   * Para VOD, el browser negocia la licencia Widevine DRM antes de que el
-   * video comience a reproducirse — ver PlayerPage.waitForPlayback() para
-   * cómo se valida el playback en contenido DRM.
+   * After clicking, PlutoTV navigates to the player with the selected content.
+   * For VOD, the browser negotiates the Widevine DRM license before the
+   * video begins playing — see PlayerPage.waitForPlayback() for how
+   * playback is validated on DRM-protected content.
    */
   async clickWatchNow() {
     await this.watchNowButton.click();

@@ -1,52 +1,52 @@
 /**
- * LiveTvPage.js — Page Object para la sección Live TV de PlutoTV
+ * LiveTvPage.js — Page Object for the PlutoTV Live TV section
  *
- * Representa la pantalla /live-tv con su hero carousel en la parte superior.
- * El hero carousel de Live TV muestra canales en vivo con dos CTAs:
- *   - "Watch Live Channel" (amarillo) → abre el player del canal directamente
- *   - "Details" (gris) → navega a la ficha de detalles del canal
+ * Represents the /live-tv screen with its hero carousel at the top.
+ * The Live TV hero carousel displays live channels with two CTAs:
+ *   - "Watch Live Channel" (yellow) → opens the channel player directly
+ *   - "Details" (grey) → navigates to the channel detail page
  *
- * Debajo del hero hay un strip horizontal de thumbnails de canales y una
- * barra lateral izquierda con categorías (Featured, Live Sports, Movies, etc.)
+ * Below the hero there is a horizontal strip of channel thumbnails and a
+ * left sidebar with categories (Featured, Live Sports, Movies, etc.)
  *
- * Estructura de la página:
- *   Hero carousel (con nextButton arrows)
- *   └── Slide activo: título del canal, "Watch Live Channel", "Details"
- *   Channel strip horizontal (thumbnails de canales)
- *   EPG / parrilla de programación
+ * Page structure:
+ *   Hero carousel (with nextButton arrows)
+ *   └── Active slide: channel title, "Watch Live Channel", "Details"
+ *   Horizontal channel strip (channel thumbnails)
+ *   EPG / program guide
  */
 
 class LiveTvPage {
   /**
-   * @param {import('playwright').Page} page - instancia de la página de Playwright
-   *        (la misma referencia que viene del PlaywrightWorld)
+   * @param {import('playwright').Page} page - Playwright page instance
+   *        (the same reference passed from PlaywrightWorld)
    */
   constructor(page) {
     this.page = page;
 
-    // Botón "siguiente" del hero carousel.
-    // Live TV usa el mismo patrón CSS-in-JS que la home page:
-    // clases generadas tipo "nextButton-0-2-224" → selector robusto con [class*="nextButton"]
-    // .first() → toma el primer nextButton del DOM (que pertenece al hero carousel)
+    // "Next" button for the hero carousel.
+    // Live TV uses the same CSS-in-JS pattern as the home page:
+    // generated class names like "nextButton-0-2-224" → robust selector with [class*="nextButton"]
+    // .first() → targets the first nextButton in the DOM (belonging to the hero carousel)
     this.nextSlideBtn = page.locator('button[class*="nextButton"]').first();
   }
 
   /**
-   * Espera a que la página de Live TV esté completamente cargada y lista para interactuar.
+   * Waits for the Live TV page to be fully loaded and ready for interaction.
    *
-   * Dos condiciones deben cumplirse:
-   * 1. La URL debe contener "live-tv" → confirma que la navegación fue exitosa
-   * 2. Algún botón CTA del hero carousel debe ser visible → confirma que el JS
-   *    hidratró y el carousel está interactivo
+   * Two conditions must be met:
+   * 1. The URL must contain "live-tv" → confirms navigation was successful
+   * 2. A hero carousel CTA button must be visible → confirms the JS has hydrated
+   *    and the carousel is interactive
    *
-   * Se espera "Watch Live Channel" OR "Details" porque el contenido del hero
-   * es dinámico: según el canal destacado, el CTA principal puede variar.
+   * We wait for "Watch Live Channel" OR "Details" because the hero content
+   * is dynamic: the primary CTA may vary depending on the featured channel.
    */
   async waitForPage() {
-    // Espera que la URL cambie a /live-tv antes de buscar elementos
+    // Wait for the URL to change to /live-tv before looking for elements
     await this.page.waitForURL(/live-tv/, { timeout: 15000 });
 
-    // Espera que el hero carousel hidrate: alguno de los CTAs debe estar visible
+    // Wait for the hero carousel to hydrate: at least one CTA must be visible
     await this.page
       .locator('button')
       .filter({ hasText: /Watch Live Channel|Details/ })
@@ -55,42 +55,42 @@ class LiveTvPage {
   }
 
   /**
-   * Busca y hace click en un botón del hero carousel de Live TV por su texto.
-   * Si el botón no está en el slide actual, avanza al siguiente slide y reintenta,
-   * hasta un máximo de 10 slides.
+   * Finds and clicks a button in the Live TV hero carousel by its text.
+   * If the button is not on the current slide, advances to the next slide and retries,
+   * up to a maximum of 10 slides.
    *
-   * El hero carousel de Live TV funciona igual que el de la Home page:
-   * el contenido es dinámico y el canal destacado cambia entre sesiones,
-   * por lo que necesitamos iterar slides hasta encontrar el CTA objetivo.
+   * The Live TV hero carousel works the same way as the Home page carousel:
+   * content is dynamic and the featured channel changes between sessions,
+   * so we need to iterate through slides until we find the target CTA.
    *
-   * @param {string} buttonText - texto del botón: "Watch Live Channel" o "Details"
-   * @throws {Error} si el botón no se encuentra en ninguno de los slides
+   * @param {string} buttonText - button text: "Watch Live Channel" or "Details"
+   * @throws {Error} if the button is not found in any of the slides
    */
   async clickHeroCarouselButton(buttonText) {
     const maxSlides = 10;
 
     for (let i = 0; i < maxSlides; i++) {
-      // Busca un <button> cuyo texto coincida exactamente con buttonText
+      // Locate a <button> whose text matches exactly buttonText
       const btn = this.page.locator('button').filter({ hasText: buttonText }).first();
 
       try {
-        // Espera hasta 2 segundos a que el botón sea visible en el slide actual
+        // Wait up to 2 seconds for the button to be visible on the current slide
         await btn.waitFor({ state: 'visible', timeout: 2000 });
         await btn.click();
-        return; // encontrado y clickeado — salimos del loop
+        return; // found and clicked — exit the loop
       } catch {
-        // El botón no está en este slide → intentamos avanzar al siguiente
+        // Button not on this slide → try advancing to the next one
       }
 
       try {
-        // Hace click en la flecha ">" del hero carousel para pasar al siguiente slide
+        // Click the ">" arrow on the hero carousel to advance to the next slide
         await this.nextSlideBtn.waitFor({ state: 'visible', timeout: 2000 });
         await this.nextSlideBtn.click();
 
-        // Pausa para que la animación de transición del slide termine
+        // Pause to let the slide transition animation finish
         await this.page.waitForTimeout(1500);
       } catch {
-        // No hay botón "next" disponible → no hay más slides
+        // No "next" button available → no more slides
         break;
       }
     }

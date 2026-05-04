@@ -1,44 +1,44 @@
 /**
- * hooks.js — Hooks globales de Cucumber (Before / After)
+ * hooks.js — Global Cucumber hooks (Before / After)
  *
- * Los hooks se ejecutan automáticamente antes y después de CADA escenario.
- * No es necesario llamarlos desde los feature files — Cucumber los detecta solo.
+ * Hooks run automatically before and after EVERY scenario.
+ * They do not need to be called from feature files — Cucumber detects them automatically.
  *
- * Before → abre el browser antes de que arranquen los steps del escenario
- * After  → cierra el browser al terminar; si el escenario falló, captura un screenshot
+ * Before → opens the browser before the scenario steps begin
+ * After  → closes the browser when done; captures a screenshot if the scenario failed
  */
 
 const { Before, After, Status } = require('@cucumber/cucumber');
 
 /**
- * Hook Before: se ejecuta una vez antes de cada escenario.
- * `this` es una instancia de PlaywrightWorld (definida en world.js),
- * por eso podemos llamar a this.openBrowser().
+ * Before hook: runs once before each scenario.
+ * `this` is an instance of PlaywrightWorld (defined in world.js),
+ * which is why we can call this.openBrowser().
  */
 Before(async function () {
   await this.openBrowser();
 });
 
 /**
- * Hook After: se ejecuta una vez después de cada escenario.
+ * After hook: runs once after each scenario.
  *
- * @param {object} scenario - objeto de Cucumber con info del escenario ejecutado
+ * @param {object} scenario - Cucumber object with information about the executed scenario
  *
- * Si el escenario FALLÓ (Status.FAILED), toma un screenshot de la página
- * en el momento del fallo y lo adjunta al reporte HTML de Cucumber.
- * Esto es clave para el debugging: puedes ver exactamente qué mostraba
- * el browser cuando el test falló.
+ * If the scenario FAILED (Status.FAILED), takes a screenshot of the page
+ * at the moment of failure and attaches it to the Cucumber HTML report.
+ * This is essential for debugging: you can see exactly what the browser
+ * was showing when the test failed.
  */
 After(async function (scenario) {
   if (scenario.result.status === Status.FAILED) {
-    // page.screenshot() devuelve el PNG como Buffer (datos binarios)
+    // page.screenshot() returns the PNG as a Buffer (binary data)
     const screenshot = await this.page.screenshot();
 
-    // attach() adjunta el screenshot al reporte de Cucumber
-    // con el MIME type image/png para que se muestre como imagen
+    // attach() adds the screenshot to the Cucumber report
+    // with the image/png MIME type so it renders as an image
     await this.attach(screenshot, 'image/png');
   }
 
-  // Siempre cerramos el browser, haya pasado o fallado el escenario
+  // Always close the browser, regardless of whether the scenario passed or failed
   await this.closeBrowser();
 });

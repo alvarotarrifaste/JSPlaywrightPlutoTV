@@ -1,81 +1,81 @@
 /**
- * world.js — Cucumber World personalizado para Playwright
+ * world.js — Custom Cucumber World for Playwright
  *
- * En Cucumber, el "World" es el objeto `this` disponible en cada step y hook.
- * Al extenderlo con PlaywrightWorld, compartimos el browser, context y page
- * entre todos los steps de un mismo escenario sin pasar variables manualmente.
+ * In Cucumber, the "World" is the `this` object available in every step and hook.
+ * By extending it with PlaywrightWorld, we share the browser, context, and page
+ * across all steps of the same scenario without passing variables manually.
  *
- * setDefaultTimeout(30000) aplica un timeout de 30 segundos a TODOS los steps
- * y hooks del proyecto. Sin esto, Cucumber usa 5 segundos por defecto, lo cual
- * es insuficiente para cargar páginas de streaming como PlutoTV.
+ * setDefaultTimeout(30000) applies a 30-second timeout to ALL steps
+ * and hooks in the project. Without this, Cucumber uses 5 seconds by default,
+ * which is insufficient for loading streaming pages like PlutoTV.
  */
 
 const { setWorldConstructor, World, setDefaultTimeout } = require('@cucumber/cucumber');
 const { chromium } = require('playwright');
 
-// Timeout global: 60 segundos por step/hook.
-// Se aumentó de 30 s a 60 s porque algunos steps combinan múltiples esperas:
-// waitForPlayer (hasta 30 s) + waitForFullScreenLayout (hasta 25 s) = 55 s máximo teórico.
-// PlutoTV también tiene tiempo de carga de DRM y negociación de licencia Widevine,
-// lo que puede sumar latencia adicional en la validación de playback.
+// Global timeout: 60 seconds per step/hook.
+// Increased from 30 s to 60 s because some steps combine multiple waits:
+// waitForPlayer (up to 30 s) + waitForFullScreenLayout (up to 25 s) = 55 s theoretical maximum.
+// PlutoTV also has DRM load time and Widevine license negotiation,
+// which can add extra latency to playback validation.
 setDefaultTimeout(60000);
 
 class PlaywrightWorld extends World {
   /**
-   * El constructor recibe `options` de Cucumber (parámetros del world, reporter, etc.)
-   * y llama a super() para que Cucumber inicialice su lógica base.
-   * Las propiedades browser, context y page empiezan en null y se asignan en openBrowser().
+   * The constructor receives `options` from Cucumber (world parameters, reporter, etc.)
+   * and calls super() so Cucumber initializes its base logic.
+   * The browser, context, and page properties start as null and are assigned in openBrowser().
    */
   constructor(options) {
     super(options);
-    this.browser = null;   // instancia del navegador (Chromium)
-    this.context = null;   // contexto del browser (equivale a un perfil aislado)
-    this.page = null;      // pestaña activa donde se ejecutan las acciones
+    this.browser = null;   // browser instance (Chromium)
+    this.context = null;   // browser context (equivalent to an isolated profile)
+    this.page = null;      // active tab where actions are executed
   }
 
   /**
-   * Abre una instancia de Chrome y crea una pestaña nueva.
-   * Es llamado en el hook Before (support/hooks.js) al inicio de cada escenario.
+   * Opens a Chrome instance and creates a new tab.
+   * Called in the Before hook (support/hooks.js) at the start of each scenario.
    *
-   * headless: false  → el browser es VISIBLE (modo headed, desarrollo local)
-   * headless: true   → el browser corre en segundo plano sin ventana (modo CI)
+   * headless: false  → browser is VISIBLE (headed mode, local development)
+   * headless: true   → browser runs in the background with no window (CI mode)
    *
-   * Variables de entorno que controlan el comportamiento:
-   *   HEADED=true    → browser visible (npm run test:headed)
-   *   CI_MODE=true   → activa opciones de hardening para GitHub Actions
+   * Environment variables that control behavior:
+   *   HEADED=true    → visible browser (npm run test:headed)
+   *   CI_MODE=true   → enables hardening options for GitHub Actions
    *
-   * --- Args de Chromium para CI (CI_MODE=true) ---
+   * --- Chromium args for CI (CI_MODE=true) ---
    *
    * --no-sandbox, --disable-setuid-sandbox:
-   *   Requeridos en contenedores Linux (GitHub Actions ubuntu-latest) porque
-   *   el sandbox de Chromium necesita privilegios de kernel que los containers
-   *   no otorgan. Sin esto, Chromium puede crashear al inicio.
+   *   Required in Linux containers (GitHub Actions ubuntu-latest) because
+   *   the Chromium sandbox needs kernel privileges that containers do not grant.
+   *   Without this, Chromium may crash on startup.
    *
    * --disable-dev-shm-usage:
-   *   En containers de CI, /dev/shm (memoria compartida) suele tener solo 64 MB.
-   *   Chromium la usa para renderizado y puede quedarse sin espacio → crash.
-   *   Este flag lo hace usar /tmp en su lugar.
+   *   In CI containers, /dev/shm (shared memory) typically has only 64 MB.
+   *   Chromium uses it for rendering and can run out of space → crash.
+   *   This flag makes it use /tmp instead.
    *
    * --disable-blink-features=AutomationControlled:
-   *   Elimina el flag `navigator.webdriver = true` que los sitios detectan
-   *   para identificar browsers automatizados (bot detection básico).
+   *   Removes the `navigator.webdriver = true` flag that sites detect
+   *   to identify automated browsers (basic bot detection).
    *
-   * --- Contexto del browser ---
+   * --- Browser context ---
    *
-   * userAgent: imita un Chrome real en Windows 10 para evitar bot detection
-   *   basado en User-Agent. El headless Chrome por defecto incluye "HeadlessChrome"
-   *   en el UA, que muchos sitios bloquean.
+   * userAgent: mimics a real Chrome on Windows 10 to avoid User-Agent-based
+   *   bot detection. Headless Chrome by default includes "HeadlessChrome"
+   *   in the UA, which many sites block.
    *
-   * viewport: 1920x1080 → simula un desktop estándar. PlutoTV adapta su layout
-   *   al viewport; un viewport pequeño puede ocultar elementos o cambiar el DOM.
+   * viewport: 1920x1080 → simulates a standard desktop. PlutoTV adapts its layout
+   *   to the viewport; a small viewport can hide elements or change the DOM.
    *
-   * locale / timezoneId: simula un usuario en US para obtener el contenido
-   *   de PlutoTV US correctamente (la plataforma es geo-dependent).
+   * locale / timezoneId: simulates a US user to correctly receive PlutoTV US content
+   *   (the platform is geo-dependent).
    */
   async openBrowser() {
     const isCI = process.env.CI_MODE === 'true';
 
-    // Args adicionales solo en CI: necesarios para correr Chromium en containers Linux
+    // Additional args only in CI: required to run Chromium in Linux containers
     const ciArgs = [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -88,29 +88,29 @@ class PlaywrightWorld extends World {
       args: isCI ? ciArgs : []
     });
 
-    // Opciones del contexto para simular un browser real (aplica en CI y local)
+    // Context options to simulate a real browser (applies in both CI and local)
     const contextOptions = {
-      // User-Agent de Chrome 131 en Windows 10 — evita el "HeadlessChrome" del UA por defecto
+      // Chrome 131 User-Agent on Windows 10 — avoids the default "HeadlessChrome" UA
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
 
-      // Viewport de desktop estándar — PlutoTV puede renderizar diferente en viewports pequeños
+      // Standard desktop viewport — PlutoTV may render differently on smaller viewports
       viewport: { width: 1920, height: 1080 },
 
-      // Locale y timezone de US — PlutoTV sirve contenido geo-dependiente
+      // US locale and timezone — PlutoTV serves geo-dependent content
       locale: 'en-US',
       timezoneId: 'America/New_York'
     };
 
-    // newContext() crea un perfil aislado: sin cookies ni storage de sesiones anteriores
+    // newContext() creates an isolated profile: no cookies or storage from previous sessions
     this.context = await this.browser.newContext(contextOptions);
 
-    // newPage() abre una nueva pestaña dentro del contexto
+    // newPage() opens a new tab within the context
     this.page = await this.context.newPage();
   }
 
   /**
-   * Cierra el browser y libera todos los recursos asociados (contexto, páginas, etc.)
-   * Es llamado en el hook After (support/hooks.js) al finalizar cada escenario.
+   * Closes the browser and releases all associated resources (context, pages, etc.)
+   * Called in the After hook (support/hooks.js) at the end of each scenario.
    */
   async closeBrowser() {
     if (this.browser) {
@@ -119,5 +119,5 @@ class PlaywrightWorld extends World {
   }
 }
 
-// Registra PlaywrightWorld como el constructor del World para todos los escenarios
+// Register PlaywrightWorld as the World constructor for all scenarios
 setWorldConstructor(PlaywrightWorld);
