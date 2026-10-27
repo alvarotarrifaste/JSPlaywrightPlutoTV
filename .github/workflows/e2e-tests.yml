@@ -2,7 +2,7 @@ name: E2E Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, portfolio/plutotv-stabilization]
   pull_request:
     branches: [main]
 
