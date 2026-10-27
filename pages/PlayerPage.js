@@ -14,16 +14,16 @@ class PlayerPage {
   async readState() {
     return this.video.evaluate(video => {
       const quality = video.getVideoPlaybackQuality();
-      return ({
-      source: video.currentSrc || video.src,
-      time: video.currentTime,
-      frames: quality.totalVideoFrames - quality.droppedVideoFrames,
-      paused: video.paused,
-      readyState: video.readyState,
-      networkState: video.networkState,
-      errorCode: video.error?.code || null,
-      mediaKeysAttached: !!video.mediaKeys,
-      });
+      return {
+        source: video.currentSrc || video.src,
+        time: video.currentTime,
+        frames: quality.totalVideoFrames - quality.droppedVideoFrames,
+        paused: video.paused,
+        readyState: video.readyState,
+        networkState: video.networkState,
+        errorCode: video.error?.code || null,
+        mediaKeysAttached: !!video.mediaKeys,
+      };
     });
   }
 
@@ -36,7 +36,8 @@ class PlayerPage {
 
     const before = await this.readState();
     // Compare media on the selected surface, not the autoplay mini-player.
-    await this.page.waitForFunction(({ selector, before }) => {
+    try {
+      await this.page.waitForFunction(({ selector, before }) => {
       const video = document.querySelector(selector);
       if (!video) return false;
       const quality = video.getVideoPlaybackQuality();
@@ -46,6 +47,10 @@ class PlayerPage {
         quality.totalVideoFrames - quality.droppedVideoFrames > before.frames + 15;
     }, { selector: this.selector, before }, { timeout: 30000, polling: 250 });
 
+    } catch (error) {
+      const after = await this.readState();
+      throw new Error(`Media did not progress on the selected player: ${JSON.stringify({ before, after })}`, { cause: error });
+    }
     return { before, after: await this.readState() };
   }
 }

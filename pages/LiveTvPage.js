@@ -13,6 +13,7 @@ class LiveTvPage {
   async selectAnotherChannel() {
     const channelId = await this.availableChannel.getAttribute('data-epg-row-id');
     await this.availableChannel.getByRole('link', { name: /^Channel / }).click();
+    await this.page.getByRole('dialog').getByRole('button', { name: /^Watch (Live )?Channel$/i }).click();
     await this.page.waitForFunction(id => {
       const row = document.querySelector(`[data-epg-row-id="${id}"]`);
       return row?.getAttribute('data-playing') === 'true';

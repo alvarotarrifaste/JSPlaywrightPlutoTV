@@ -29,7 +29,7 @@ jobs:
       - name: Check patch whitespace
         run: git diff --check origin/main...HEAD
       - name: Run Cucumber scenarios
-        run: npm test
+        run: npm test -- --format json:reports/cucumber-report.json
       - name: Upload Cucumber report and failure diagnostics
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
