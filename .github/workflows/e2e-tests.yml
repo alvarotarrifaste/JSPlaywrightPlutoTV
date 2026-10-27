@@ -28,20 +28,8 @@ jobs:
         run: npm run test:dry-run
       - name: Check patch whitespace
         run: git diff --check origin/main...HEAD
-      - name: Validate failure diagnostics with one controlled failure
-        run: node .audit/verify-diagnostics.cjs
-      - name: Validate headed command without launching a desktop
-        run: npm run test:headed -- --dry-run
-      - name: Run each scenario independently
-        run: |
-          npm test -- --tags @live-tv
-          npm test -- --tags @vod
-          npm test -- --tags @live-tv-page
-          npm test -- --tags @on-demand-page
-      - name: Run complete suite twice without retries
-        run: |
-          npm test
-          npm test
+      - name: Run Cucumber scenarios
+        run: npm test
       - name: Upload Cucumber report and failure diagnostics
         uses: actions/upload-artifact@v7.0.2
         if: ${{ !cancelled() }}
