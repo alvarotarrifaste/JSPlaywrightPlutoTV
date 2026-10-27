@@ -7,7 +7,7 @@ Feature: Start watching from Home
     Given I open the Pluto TV US home page
     When I choose an available live channel from Home
     Then the selected live channel should open in the player
-    And media time and displayed frames should advance
+    And media should progress in the selected player
 
   @vod
   Scenario: Start the featured on-demand title from Home
@@ -15,4 +15,4 @@ Feature: Start watching from Home
     When I open the featured on-demand title
     And I start watching the selected title
     Then the selected on-demand title should open in the player
-    And media time and displayed frames should advance
+    And media should progress in the selected player

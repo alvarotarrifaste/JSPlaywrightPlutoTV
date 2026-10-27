@@ -19,7 +19,7 @@ Then('the selected on-demand title should open in the player', async function ()
   await this.playerPage.waitForPlayer();
 });
 
-Then('media time and displayed frames should advance', async function () {
+Then('media should progress in the selected player', async function () {
   const observation = await this.playerPage.waitForProgress();
   await this.attach(JSON.stringify(observation, null, 2), 'application/json');
   assert.equal(observation.after.source, observation.before.source);

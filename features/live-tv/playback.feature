@@ -8,4 +8,4 @@ Feature: Choose a live channel
     When I open Live TV
     And I choose another channel from the guide
     Then the selected live channel should open in the player
-    And media time and displayed frames should advance
+    And media should progress in the selected player

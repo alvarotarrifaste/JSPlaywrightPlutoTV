@@ -24,7 +24,7 @@ class PlayerPage {
         errorCode: video.error?.code || null,
         mediaKeysAttached: !!video.mediaKeys,
       };
-    });
+    }, undefined, { timeout: 1000 });
   }
 
   async waitForProgress() {
@@ -34,24 +34,48 @@ class PlayerPage {
         video.readyState >= 2 && video.videoWidth > 0;
     }, this.selector, { timeout: 20000 });
 
-    const before = await this.readState();
-    // Compare media on the selected surface, not the autoplay mini-player.
+    let before = await this.readState();
+    const deadline = Date.now() + 30000;
     try {
-      await this.page.waitForFunction(({ selector, before }) => {
-      const video = document.querySelector(selector);
-      if (!video) return false;
-      const quality = video.getVideoPlaybackQuality();
-      return (video.currentSrc || video.src) === before.source &&
-        !video.paused && !video.seeking && !video.error && video.readyState >= 2 &&
-        video.currentTime > before.time + 1 &&
-        quality.totalVideoFrames - quality.droppedVideoFrames > before.frames + 15;
-    }, { selector: this.selector, before }, { timeout: 30000, polling: 250 });
+      // Ads may replace/reset media. Resample within the original deadline.
+      while (Date.now() < deadline) {
+        const handle = await this.page.waitForFunction(({ selector, before }) => {
+          const video = document.querySelector(selector);
+          if (!video) return false;
+          const quality = video.getVideoPlaybackQuality();
+          const state = {
+            source: video.currentSrc || video.src,
+            time: video.currentTime,
+            frames: quality.totalVideoFrames - quality.droppedVideoFrames,
+            paused: video.paused,
+            readyState: video.readyState,
+            networkState: video.networkState,
+            errorCode: video.error?.code || null,
+            mediaKeysAttached: !!video.mediaKeys,
+          };
+          if (state.source !== before.source || state.time < before.time || state.frames < before.frames) {
+            return { reset: true, state };
+          }
+          if (state.source && !state.paused && !video.seeking && !state.errorCode &&
+              state.readyState >= 2 && state.time > before.time + 1 && state.frames > before.frames + 15) {
+            return { reset: false, state };
+          }
+          return false;
+        }, { selector: this.selector, before }, { timeout: Math.max(1, deadline - Date.now()), polling: 250 });
 
+        const observation = await handle.jsonValue();
+        await handle.dispose();
+        if (observation.reset) {
+          before = observation.state;
+        } else {
+          return { before, after: observation.state };
+        }
+      }
+      throw new Error('Media kept resetting within the 30-second observation window');
     } catch (error) {
       const after = await this.readState();
       throw new Error(`Media did not progress on the selected player: ${JSON.stringify({ before, after })}`, { cause: error });
     }
-    return { before, after: await this.readState() };
   }
 }
 
