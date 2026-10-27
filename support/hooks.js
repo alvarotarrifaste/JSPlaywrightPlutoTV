@@ -1,44 +1,35 @@
-/**
- * hooks.js — Global Cucumber hooks (Before / After)
- *
- * Hooks run automatically before and after EVERY scenario.
- * They do not need to be called from feature files — Cucumber detects them automatically.
- *
- * Before → opens the browser before the scenario steps begin
- * After  → closes the browser when done; captures a screenshot if the scenario failed
- */
-
 const { Before, After, Status } = require('@cucumber/cucumber');
+const fs = require('node:fs/promises');
 
-/**
- * Before hook: runs once before each scenario.
- * `this` is an instance of PlaywrightWorld (defined in world.js),
- * which is why we can call this.openBrowser().
- */
 Before(async function () {
   await this.openBrowser();
 });
 
-/**
- * After hook: runs once after each scenario.
- *
- * @param {object} scenario - Cucumber object with information about the executed scenario
- *
- * If the scenario FAILED (Status.FAILED), takes a screenshot of the page
- * at the moment of failure and attaches it to the Cucumber HTML report.
- * This is essential for debugging: you can see exactly what the browser
- * was showing when the test failed.
- */
-After(async function (scenario) {
-  if (scenario.result.status === Status.FAILED) {
-    // page.screenshot() returns the PNG as a Buffer (binary data)
-    const screenshot = await this.page.screenshot();
-
-    // attach() adds the screenshot to the Cucumber report
-    // with the image/png MIME type so it renders as an image
-    await this.attach(screenshot, 'image/png');
+After(async function ({ result, pickle }) {
+  try {
+    if (result?.status === Status.FAILED && this.page && !this.page.isClosed()) {
+      try {
+        await fs.mkdir('reports', { recursive: true });
+        const screenshot = await this.page.screenshot({
+          path: `reports/failure-${pickle.id}.png`,
+          timeout: 5000,
+        });
+        await this.attach(screenshot, 'image/png');
+        const state = await this.page.locator('video').evaluateAll(videos => videos.map(video => ({
+          sourceAssigned: !!(video.currentSrc || video.src),
+          paused: video.paused,
+          currentTime: video.currentTime,
+          readyState: video.readyState,
+          networkState: video.networkState,
+          errorCode: video.error?.code || null,
+          mediaKeysAttached: !!video.mediaKeys,
+        })));
+        await this.attach(JSON.stringify({ url: this.page.url(), video: state }, null, 2), 'application/json');
+      } catch (error) {
+        await this.attach(`Failure diagnostics could not be captured: ${error.message}`, 'text/plain');
+      }
+    }
+  } finally {
+    await this.closeBrowser();
   }
-
-  // Always close the browser, regardless of whether the scenario passed or failed
-  await this.closeBrowser();
 });

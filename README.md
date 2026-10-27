@@ -1,180 +1,75 @@
-# JSPlaywrightPlutoTV
+# Pluto TV web journeys
 
-End-to-end automation framework for [PlutoTV](https://pluto.tv) web platform, built with **Playwright + JavaScript + Cucumber (BDD) + GitHub Actions**.
+A focused JavaScript + Playwright + Cucumber BDD UI automation project against [Pluto TV's public US website](https://pluto.tv/us/home/). Gherkin describes user journeys; Page Objects keep browser interactions separate from step-level assertions.
 
----
+## Coverage
 
-## Tech Stack
+Four scenarios, with a fresh browser per scenario:
 
-| Tool | Version | Purpose |
-|---|---|---|
-| [Playwright](https://playwright.dev) | ^1.49 | Browser automation |
-| [@cucumber/cucumber](https://cucumber.io) | ^10.8 | BDD test runner |
-| Node.js | 20+ | Runtime |
-| GitHub Actions | — | CI/CD pipeline |
+| Tag | Journey |
+| --- | --- |
+| `@live-tv` | Home live-channel card → selected channel/player |
+| `@vod` | Home featured title → Details → Play Now → on-demand player |
+| `@live-tv-page` | Live TV navigation → choose another guide channel → selected channel/player |
+| `@on-demand-page` | Movies catalog → movie details → Play Now → on-demand player |
 
----
+The public UI changed from the original hero-based flows: Live TV now uses a guide, and Movies is the on-demand movie catalog. Scenarios follow these current surfaces and do not hardcode content titles.
 
-## Project Structure
+## Run
 
-```
-JSPlaywrightPlutoTV/
-├── .github/
-│   └── workflows/
-│       └── e2e-tests.yml          # CI pipeline (runs on push/PR to main)
-│
-├── features/                      # BDD feature files (Gherkin)
-│   ├── home/
-│   │   └── playbackFromHeroCarousel.feature
-│   ├── live-tv/
-│   │   └── playbackFromHeroCarouselLiveTvPage.feature
-│   └── on-demand/
-│       └── playbackFromHeroCarouselOnDemandPage.feature
-│
-├── pages/                         # Page Object Model (POM)
-│   ├── HomePage.js                # Home page: navigate, hero carousel, nav button
-│   ├── LiveTvPage.js              # Live TV page: wait for page, hero carousel
-│   ├── OnDemandPage.js            # On Demand page: wait for page, hero carousel (dots)
-│   ├── DetailsPage.js             # VOD details page: wait for page, Watch Now
-│   └── PlayerPage.js              # Video player validations (all sections)
-│
-├── step-definitions/              # Cucumber step implementations
-│   ├── playbackFromHeroCarouselSteps.js          # Shared steps (home page, carousel, player)
-│   ├── playbackFromHeroCarouselLiveTvPageSteps.js # Live TV navigation step
-│   └── playbackFromHeroCarouselOnDemandPageSteps.js # On Demand nav + details steps
-│
-├── support/                       # Cucumber support files
-│   ├── world.js                   # PlaywrightWorld (browser lifecycle + default timeout)
-│   └── hooks.js                   # Before/After hooks (screenshot on failure)
-│
-├── cucumber.js                    # Cucumber configuration
-├── package.json
-└── .gitignore
-```
-
----
-
-## Setup
-
-**Prerequisites:** Node.js 20+
+Use Node.js 22, npm, and a network location that can access the US site.
 
 ```bash
-# Install dependencies
-npm install
-
-# Install Playwright Chromium browser
+git clone https://github.com/alvarotarrifaste/JSPlaywrightPlutoTV.git
+cd JSPlaywrightPlutoTV
+npm ci
 npx playwright install chromium
+npm run test:dry-run
+npm test
 ```
 
----
-
-## Running Tests
+On Linux, install browser system dependencies with `npx playwright install --with-deps chromium`.
 
 ```bash
-# Headless mode (default — for CI)
-npm test
-
-# Headed mode (visible browser — for local development)
 npm run test:headed
-
-# Run only Home page scenarios
-npm test -- --tags "@live-tv or @vod"
-
-# Run only Live TV page scenario
+npm test -- --tags @vod
+npm test -- --tags @live-tv
 npm test -- --tags @live-tv-page
-
-# Run only On Demand page scenario
 npm test -- --tags @on-demand-page
-
-# Run all playback scenarios
-npm test
-
-# Generate HTML report
-npm run test:report
 ```
 
-HTML report is generated at `reports/cucumber-report.html`.
+Headed mode needs a desktop. Every test run generates `reports/cucumber-report.html`; no separate report command is required.
 
----
+## Structure
 
-## Test Scenarios
+```text
+features/             # home, live-tv, on-demand Gherkin
+pages/                # HomePage, LiveTvPage, MoviesPage, DetailsPage, PlayerPage
+step-definitions/     # navigation, selection, playback assertions
+support/world.js      # per-scenario browser/context/page
+support/hooks.js      # lifecycle and failure evidence
+cucumber.js           # step discovery and HTML/progress reporting
+.github/workflows/    # GitHub Actions
+```
 
-### `features/home/playbackFromHeroCarousel.feature`
+Cucumber is the runner; Playwright controls Chromium. Assertions use Node's built-in assert module. There is no Playwright Test runner, base class, or custom fixture layer.
 
-Validates that users can initiate playback directly from the hero carousel on the PlutoTV home page.
+## What playback checks prove
 
-| Tag | Scenario | Description |
-|---|---|---|
-| `@live-tv` | PlaybackValidationFromHeroCarousel - Live TV | Clicks **Watch Live** on the home hero carousel, validates fullscreen player opens and Live TV playback starts |
-| `@vod` | PlaybackValidationFromHeroCarousel - VOD | Clicks **Play Now** on the home hero carousel, validates fullscreen player opens and VOD playback starts |
+After verifying the selected channel route or title's opened player, tests scope the video to the Live TV or on-demand player container. Two observations must show the same media source, more than one second of media-time advancement, and an increase of more than 15 displayed frames (total minus dropped frames), with no media error. Observations are attached to the report.
 
-### `features/live-tv/playbackFromHeroCarouselLiveTvPage.feature`
+This proves browser media progression on that surface. It can include advertisements; it does **not** prove that the selected programme played, that DRM succeeded, or that audiovisual quality is correct. A blob URL or `NETWORK_LOADING` alone is not proof of DRM or playback. See the [HTML media states](https://html.spec.whatwg.org/multipage/media.html#network-states).
 
-Validates playback initiation from the hero carousel on the Live TV section page.
+## Synchronization and limits
 
-| Tag | Scenario | Description |
-|---|---|---|
-| `@live-tv-page` | PlaybackValidationFromHeroCarouselLiveTvPage | Navigates to **Live TV** via top nav, clicks **Watch Live Channel** on the Live TV hero carousel, validates fullscreen player and playback |
+The Home hero uses its available Details action without cycling through a guessed number of slides or sleeping through animations. If that action is unavailable, the scenario fails with a content-specific explanation. Catalog/guide selections use current public content, accessible roles, application test IDs, and observed route/data attributes.
 
-### `features/on-demand/playbackFromHeroCarouselOnDemandPage.feature`
+The 60-second Cucumber step cap is unchanged. Browser actions have bounded waits; the media step allows up to 20 seconds for decoded data and 30 seconds for progression. There are no retries or fixed sleeps.
 
-Validates VOD playback initiation from the On Demand section page via the details screen.
+The suite targets the English US UI. A regional redirect fails explicitly; locale does not change IP-based availability. Public promotions, ads, content rights, connectivity, and application changes can affect execution. There are no private APIs, internal test environments, or proprietary playback instrumentation.
 
-| Tag | Scenario | Description |
-|---|---|---|
-| `@on-demand-page` | PlaybackValidationFromHeroCarouselOnDemandPage | Navigates to **On Demand** via top nav, clicks **Details** on the hero carousel, clicks **Watch Now** on the details page, validates fullscreen player and playback |
+## CI and diagnostics
 
----
+[GitHub Actions](https://github.com/alvarotarrifaste/JSPlaywrightPlutoTV/actions/workflows/e2e-tests.yml) runs on branch pushes and pull requests to `main`: Node 22 → `npm ci` → Chromium/system dependencies → Cucumber dry run → whitespace check → full suite. It uses the same browser configuration as local execution, without a custom user agent or automation-hiding flags.
 
-## Architecture Decisions
-
-### Page Object Model (POM)
-Each page or component has a dedicated class under `pages/`. Steps never interact with the DOM directly — they go through page objects. This keeps step definitions readable and makes selector changes isolated to one file.
-
-### Cucumber World (`support/world.js`)
-The `PlaywrightWorld` class holds the browser, context, and page instances for the duration of each scenario. Every scenario gets a fresh browser via the `Before` hook, and the browser is closed in the `After` hook.
-
-### Playback Detection
-PlutoTV uses MPEG-DASH with Widevine DRM for VOD content (served as blob URLs). Playwright's Chromium may not fully decrypt DRM segments, so `readyState` can remain at `0`. The `waitForPlayback()` method accepts either:
-- `readyState >= 3` — for Live TV (stream delivers data quickly)
-- `networkState === 2` (NETWORK_LOADING) — for DRM VOD (browser is actively fetching encrypted segments, confirming playback was initiated)
-
-### Hero Carousel Navigation
-The hero carousel is dynamic — content changes between sessions. The `clickHeroCarouselButton()` method iterates through up to 10 carousel slides using the `nextButton` arrow until it finds the target CTA (`Watch Live` or `Play Now`).
-
----
-
-## CI/CD
-
-The GitHub Actions workflow (`.github/workflows/e2e-tests.yml`) runs on every push and pull request to `main`:
-1. Checks out the code
-2. Sets up Node.js 20
-3. Installs npm dependencies
-4. Installs Playwright Chromium with system dependencies
-5. Runs the full test suite (headless)
-6. Uploads the HTML report as an artifact
-
----
-
-## Adding New Scenarios
-
-1. **Create or update a `.feature` file** under `features/<section>/`:
-   ```gherkin
-   @my-tag
-   Scenario: MyNewScenario
-     Given ...
-     When  ...
-     Then  ...
-   ```
-
-2. **Add a Page Object** under `pages/` if the scenario touches a new page or component.
-
-3. **Implement the steps** in `step-definitions/` — reuse existing steps wherever possible (e.g., `Given I open the PlutoTV home page` is shared across all home page scenarios).
-
-4. **Run locally** with `npm run test:headed -- --tags @my-tag` before pushing.
-
----
-
-## Author
-
-Alvaro Tarrifa — Senior STE | [alvarotarrifa.ste@gmail.com](mailto:alvarotarrifa.ste@gmail.com)
+Artifacts retain the HTML report and failure PNGs for 14 days. Failed scenarios attach a screenshot, page URL, and media state; cleanup runs even if diagnostic capture fails.
