@@ -33,6 +33,9 @@ jobs:
 
       # CI_MODE=true tells world.js to use CI-optimized browser options:
       # --no-sandbox, real User-Agent, 1920x1080 viewport, en-US locale
+      - name: Observe public site without custom flags and compare legacy settings
+        run: node .audit/observe-public-site.cjs
+
       - name: Run E2E tests
         run: npm test
         env:
