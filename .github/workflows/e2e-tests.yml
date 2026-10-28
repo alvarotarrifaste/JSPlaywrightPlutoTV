@@ -2,47 +2,38 @@ name: E2E Tests
 
 on:
   push:
-    branches: [main]
   pull_request:
     branches: [main]
 
-# FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 silences the Node.js 20 deprecation warning
-# in GitHub Actions (checkout, setup-node, upload-artifact).
-# These actions use their own internal Node runtime — this does not affect the project's Node version.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
         with:
-          node-version: '20'
-
+          fetch-depth: 0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
       - name: Install dependencies
-        run: npm install
-
-      # --with-deps installs the system-level dependencies required by Chromium on Linux
-      # (libglib, libnss, libatk, etc.) that are not pre-installed on ubuntu-latest
-      - name: Install Playwright browsers
+        run: npm ci
+      - name: Install Chromium
         run: npx playwright install --with-deps chromium
-
-      # CI_MODE=true tells world.js to use CI-optimized browser options:
-      # --no-sandbox, real User-Agent, 1920x1080 viewport, en-US locale
-      - name: Run E2E tests
+      - name: Validate Cucumber wiring
+        run: npm run test:dry-run
+      - name: Check patch whitespace
+        run: git diff --check origin/main...HEAD
+      - name: Run Cucumber scenarios
         run: npm test
-        env:
-          CI_MODE: true
-
-      - name: Upload test report
-        uses: actions/upload-artifact@v4
-        if: always()
+      - name: Upload Cucumber report and failure diagnostics
+        uses: actions/upload-artifact@v7.0.2
+        if: ${{ !cancelled() }}
         with:
-          name: cucumber-report
+          name: cucumber-results
           path: reports/
-          # retention-days: how many days the artifact is kept on GitHub
-          retention-days: 7
+          retention-days: 14
